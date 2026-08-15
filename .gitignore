@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Production Build
+dist/
+build/
+
+# Local Environment & Logs
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
+
+# Database WAL files (optional: keep db schema)
+*.db-wal
+*.db-shm
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
