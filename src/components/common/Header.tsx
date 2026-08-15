@@ -32,9 +32,11 @@ export const Header: React.FC = () => {
     <header className="h-16 bg-slate-900 border-b border-slate-800 text-slate-100 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shadow-lg">
       {/* Left: Branding */}
       <div className="flex items-center space-x-3">
-        <div className="bg-gradient-to-br from-tayeeba-600 to-tayeeba-800 text-white p-2 rounded-xl shadow-md border border-tayeeba-500/30 flex items-center justify-center">
-          <Building2 className="w-6 h-6 text-gold-400" />
-        </div>
+        <img 
+          src="/logo.jpg" 
+          alt="Tayeeba Housing Ltd. Logo" 
+          className="w-10 h-10 rounded-xl object-contain bg-black border border-gold-500/50 p-0.5 shadow-md"
+        />
         <div>
           <div className="flex items-center space-x-2">
             <h1 className="font-extrabold tracking-tight text-lg text-white font-sans">
