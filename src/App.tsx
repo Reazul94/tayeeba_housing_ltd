@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ERPProvider, useERP } from './context/ERPContext';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
@@ -25,6 +25,7 @@ import { SettingsManager } from './components/settings/SettingsManager';
 
 const ERPContent: React.FC = () => {
   const { currentTab } = useERP();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const renderTabContent = () => {
     switch (currentTab) {
@@ -73,11 +74,11 @@ const ERPContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col font-sans">
-      <Header />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
+    <div className="min-h-screen bg-slate-950 flex flex-col font-sans text-slate-100">
+      <Header onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
+      <div className="flex flex-1 relative">
+        <Sidebar mobileOpen={mobileSidebarOpen} onCloseMobile={() => setMobileSidebarOpen(false)} />
+        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto max-w-7xl mx-auto w-full min-w-0">
           {renderTabContent()}
         </main>
       </div>
