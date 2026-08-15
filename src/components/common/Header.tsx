@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import { UserRole } from '../../types/erp';
+import logoImg from '../../assets/logo.jpg';
 import { 
   Building2, Search, Bell, Globe, UserCheck, Shield, ChevronDown, 
   CheckCircle, AlertTriangle, FileText, X
@@ -33,9 +34,9 @@ export const Header: React.FC = () => {
       {/* Left: Branding */}
       <div className="flex items-center space-x-3">
         <img 
-          src="/logo.jpg" 
+          src={logoImg} 
           alt="Tayeeba Housing Ltd. Logo" 
-          className="w-10 h-10 rounded-xl object-contain bg-black border border-gold-500/50 p-0.5 shadow-md"
+          className="w-10 h-10 rounded-xl object-contain bg-black border border-gold-500/50 p-0.5 shadow-md flex-shrink-0"
         />
         <div>
           <div className="flex items-center space-x-2">
