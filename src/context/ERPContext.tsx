@@ -99,93 +99,129 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Load / Persist data
   const [projects, setProjects] = useState<Project[]>(() => {
-    const saved = localStorage.getItem('thl_projects');
-    return saved ? JSON.parse(saved) : mockProjects;
+    try {
+      const saved = localStorage.getItem('thl_projects');
+      return saved ? JSON.parse(saved) : mockProjects;
+    } catch (e) { return mockProjects; }
   });
 
   const [plots, setPlots] = useState<Plot[]>(() => {
-    const saved = localStorage.getItem('thl_plots');
-    return saved ? JSON.parse(saved) : mockPlots;
+    try {
+      const saved = localStorage.getItem('thl_plots');
+      return saved ? JSON.parse(saved) : mockPlots;
+    } catch (e) { return mockPlots; }
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
-    const saved = localStorage.getItem('thl_customers');
-    return saved ? JSON.parse(saved) : mockCustomers;
+    try {
+      const saved = localStorage.getItem('thl_customers');
+      return saved ? JSON.parse(saved) : mockCustomers;
+    } catch (e) { return mockCustomers; }
   });
 
   const [leads, setLeads] = useState<Lead[]>(() => {
-    const saved = localStorage.getItem('thl_leads');
-    return saved ? JSON.parse(saved) : mockLeads;
+    try {
+      const saved = localStorage.getItem('thl_leads');
+      return saved ? JSON.parse(saved) : mockLeads;
+    } catch (e) { return mockLeads; }
   });
 
   const [siteVisits, setSiteVisits] = useState<SiteVisit[]>(() => {
-    const saved = localStorage.getItem('thl_site_visits');
-    return saved ? JSON.parse(saved) : mockSiteVisits;
+    try {
+      const saved = localStorage.getItem('thl_site_visits');
+      return saved ? JSON.parse(saved) : mockSiteVisits;
+    } catch (e) { return mockSiteVisits; }
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
-    const saved = localStorage.getItem('thl_bookings');
-    return saved ? JSON.parse(saved) : mockBookings;
+    try {
+      const saved = localStorage.getItem('thl_bookings');
+      return saved ? JSON.parse(saved) : mockBookings;
+    } catch (e) { return mockBookings; }
   });
 
   const [installments, setInstallments] = useState<Installment[]>(() => {
-    const saved = localStorage.getItem('thl_installments');
-    return saved ? JSON.parse(saved) : mockInstallments;
+    try {
+      const saved = localStorage.getItem('thl_installments');
+      return saved ? JSON.parse(saved) : mockInstallments;
+    } catch (e) { return mockInstallments; }
   });
 
   const [receipts, setReceipts] = useState<PaymentReceipt[]>(() => {
-    const saved = localStorage.getItem('thl_receipts');
-    return saved ? JSON.parse(saved) : mockReceipts;
+    try {
+      const saved = localStorage.getItem('thl_receipts');
+      return saved ? JSON.parse(saved) : mockReceipts;
+    } catch (e) { return mockReceipts; }
   });
 
   const [accounts, setAccounts] = useState<Account[]>(() => {
-    const saved = localStorage.getItem('thl_accounts');
-    return saved ? JSON.parse(saved) : mockAccounts;
+    try {
+      const saved = localStorage.getItem('thl_accounts');
+      return saved ? JSON.parse(saved) : mockAccounts;
+    } catch (e) { return mockAccounts; }
   });
 
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(() => {
-    const saved = localStorage.getItem('thl_journal_entries');
-    return saved ? JSON.parse(saved) : mockJournalEntries;
+    try {
+      const saved = localStorage.getItem('thl_journal_entries');
+      return saved ? JSON.parse(saved) : mockJournalEntries;
+    } catch (e) { return mockJournalEntries; }
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const saved = localStorage.getItem('thl_expenses');
-    return saved ? JSON.parse(saved) : mockExpenses;
+    try {
+      const saved = localStorage.getItem('thl_expenses');
+      return saved ? JSON.parse(saved) : mockExpenses;
+    } catch (e) { return mockExpenses; }
   });
 
   const [landParcels, setLandParcels] = useState<LandParcel[]>(() => {
-    const saved = localStorage.getItem('thl_land_parcels');
-    return saved ? JSON.parse(saved) : mockLandParcels;
+    try {
+      const saved = localStorage.getItem('thl_land_parcels');
+      return saved ? JSON.parse(saved) : mockLandParcels;
+    } catch (e) { return mockLandParcels; }
   });
 
   const [commissions, setCommissions] = useState<Commission[]>(() => {
-    const saved = localStorage.getItem('thl_commissions');
-    return saved ? JSON.parse(saved) : mockCommissions;
+    try {
+      const saved = localStorage.getItem('thl_commissions');
+      return saved ? JSON.parse(saved) : mockCommissions;
+    } catch (e) { return mockCommissions; }
   });
 
   const [vendors, setVendors] = useState<Vendor[]>(() => {
-    const saved = localStorage.getItem('thl_vendors');
-    return saved ? JSON.parse(saved) : mockVendors;
+    try {
+      const saved = localStorage.getItem('thl_vendors');
+      return saved ? JSON.parse(saved) : mockVendors;
+    } catch (e) { return mockVendors; }
   });
 
   const [employees, setEmployees] = useState<Employee[]>(() => {
-    const saved = localStorage.getItem('thl_employees');
-    return saved ? JSON.parse(saved) : mockEmployees;
+    try {
+      const saved = localStorage.getItem('thl_employees');
+      return saved ? JSON.parse(saved) : mockEmployees;
+    } catch (e) { return mockEmployees; }
   });
 
   const [payrolls, setPayrolls] = useState<Payroll[]>(() => {
-    const saved = localStorage.getItem('thl_payrolls');
-    return saved ? JSON.parse(saved) : mockPayrolls;
+    try {
+      const saved = localStorage.getItem('thl_payrolls');
+      return saved ? JSON.parse(saved) : mockPayrolls;
+    } catch (e) { return mockPayrolls; }
   });
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
-    const saved = localStorage.getItem('thl_audit_logs');
-    return saved ? JSON.parse(saved) : mockAuditLogs;
+    try {
+      const saved = localStorage.getItem('thl_audit_logs');
+      return saved ? JSON.parse(saved) : mockAuditLogs;
+    } catch (e) { return mockAuditLogs; }
   });
 
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
-    const saved = localStorage.getItem('thl_notifications');
-    return saved ? JSON.parse(saved) : mockNotifications;
+    try {
+      const saved = localStorage.getItem('thl_notifications');
+      return saved ? JSON.parse(saved) : mockNotifications;
+    } catch (e) { return mockNotifications; }
   });
 
   // Sync to localStorage
