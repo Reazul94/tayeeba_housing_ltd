@@ -10,8 +10,18 @@ build/
 *.log
 .env
 .env.local
+.env.production
+server/.env
 .DS_Store
 Thumbs.db
+
+# IMPORTANT: Never commit real credentials
+# Copy .env.example to server/.env and fill in your values
+
+# SQLite database files (legacy v2.5)
+*.db
+*.db-wal
+*.db-shm
 
 # Database WAL files (optional: keep db schema)
 *.db-wal

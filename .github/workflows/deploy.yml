@@ -1,8 +1,9 @@
-name: Deploy Tayeeba Housing ERP to GitHub Pages
+name: Deploy TAYEEBA HOUSING ERP to GitHub Pages
 
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,15 +24,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+          cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm ci || npm install
 
-      - name: Build
+      - name: Build frontend
+        env:
+          # Set your API URL in GitHub Secrets:
+          # Repository → Settings → Secrets → Actions → VITE_API_URL
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'http://localhost:5000/api' }}
         run: npm run build
 
       - name: Setup Pages

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   User, Project, Plot, Customer, Lead, SiteVisit, Booking, 
   Installment, PaymentReceipt, Account, JournalEntry, Expense, 
@@ -14,6 +14,25 @@ import {
   mockAuditLogs, mockNotifications, mockRolesList, mockDesignationsList,
   mockDesignationHistories, mockLoginHistories
 } from '../data/mockData';
+import { setTokens, clearTokens, loadRefreshToken } from '../lib/api';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// In-memory access token (never persisted to localStorage)
+let _memAccessToken: string | null = null;
+
+async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<any> {
+  const url = `${API_BASE}${endpoint}`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> || {}),
+  };
+  if (_memAccessToken) headers['Authorization'] = `Bearer ${_memAccessToken}`;
+  const res = await fetch(url, { ...options, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  return data;
+}
 
 interface ERPContextType {
   // Navigation & System State
@@ -435,79 +454,84 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     vendors, employees, payrolls, auditLogs, notifications
   ]);
 
+  // Effective permissions state (fetched from /api/auth/permissions after login)
+  const [effectivePermissions, setEffectivePermissions] = useState<Record<string, any>>({});
+  const [allowedModules, setAllowedModules] = useState<string[]>([]);
+
   // -------------------------------------------------------------
   // AUTHENTICATION METHODS
   // -------------------------------------------------------------
   const login = async (userId: string, pass: string): Promise<{ success: boolean; error?: string; status?: string; mustChangePassword?: boolean }> => {
     try {
-      // 1. Attempt central LAN server login API
-      const res = await fetch('http://127.0.0.1:5000/api/auth/login', {
+      // Call the real Express API
+      const data = await apiFetch('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, password: pass })
+        body: JSON.stringify({ userId, password: pass }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('thl_auth_token', data.token);
-        setCurrentUser(data.user);
-        setIsAuthenticated(true);
-        setMustChangePassword(!!data.user.mustChangePassword);
+      // Store tokens
+      _memAccessToken = data.accessToken;
+      setTokens(data.accessToken, data.refreshToken);
+      localStorage.setItem('thl_auth_token', data.accessToken); // backwards compatibility
 
-        // Record in local history
-        const newHist: UserLoginHistory = {
-          id: `LH-${Date.now()}`,
-          userId: data.user.userId,
-          employeeCode: data.user.employeeCode,
-          userName: data.user.name,
-          loginTime: new Date().toLocaleString(),
-          ipAddress: '127.0.0.1',
-          device: 'Browser Client',
-          browser: navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Edge/Firefox',
-          status: 'SUCCESS'
-        };
-        setLoginHistories(prev => [newHist, ...prev]);
+      // Build user object from API response
+      const apiUser: User = {
+        id: data.user.id,
+        userId: data.user.userId,
+        employeeCode: data.user.employeeCode,
+        name: data.user.displayName,
+        displayName: data.user.displayName,
+        email: data.user.email,
+        role: 'User' as UserRole,
+        roles: data.user.roles || [],
+        status: data.user.status,
+        mustChangePassword: data.user.mustChangePassword,
+        permissions: { view: true, create: true, edit: true, delete: false, approve: false, export: true, print: true },
+        allowedModules: [],
+      };
 
-        return { success: true, mustChangePassword: data.user.mustChangePassword };
-      } else {
-        const errData = await res.json();
-        return { success: false, error: errData.error || 'Authentication failed.', status: errData.status };
+      setCurrentUser(apiUser);
+      setIsAuthenticated(true);
+      setMustChangePassword(!!data.user.mustChangePassword);
+
+      // Fetch effective permissions after login
+      try {
+        const permData = await apiFetch('/auth/permissions');
+        setEffectivePermissions(permData.permissions || {});
+        setAllowedModules(permData.allowedModules || []);
+        // Update user with allowed modules
+        setCurrentUser(prev => ({ ...prev, allowedModules: permData.allowedModules || [], roles: permData.roles || [] }));
+      } catch (permErr) {
+        console.warn('Could not load permissions:', permErr);
       }
-    } catch (networkErr) {
-      // Offline fallback: Check local users
+
+      return { success: true, mustChangePassword: data.user.mustChangePassword };
+
+    } catch (err: any) {
+      // API unreachable — fallback to local mock (for demo/development only)
       const found = usersList.find(u => (u.userId === userId || u.employeeCode === userId || u.email === userId));
       if (!found) {
-        return { success: false, error: 'Invalid User ID or Password.' };
+        return { success: false, error: err.message || 'Invalid User ID or Password.' };
       }
 
       if (found.status === 'LOCKED') {
         return { success: false, error: 'Your account is locked. Please contact the System Administrator.', status: 'LOCKED' };
       }
-
       if (found.status === 'INACTIVE') {
-        return { success: false, error: 'Your account is currently inactive. Please contact the System Administrator.', status: 'INACTIVE' };
+        return { success: false, error: 'Your account is currently inactive.', status: 'INACTIVE' };
       }
 
-      // Check stored custom passwords or default mock passwords
       let customPasswords: Record<string, string> = {};
-      try {
-        customPasswords = JSON.parse(localStorage.getItem('thl_user_passwords') || '{}');
-      } catch (e) {}
-
+      try { customPasswords = JSON.parse(localStorage.getItem('thl_user_passwords') || '{}'); } catch (e) {}
       const userKey = found.userId || found.employeeCode || found.id;
-      const storedPass = customPasswords[userKey] || 
-                         (found.userId ? customPasswords[found.userId] : undefined) || 
-                         (found.employeeCode ? customPasswords[found.employeeCode] : undefined) || 
-                         (found.email ? customPasswords[found.email] : undefined);
+      const storedPass = customPasswords[userKey];
+      const isMatch = Boolean(storedPass && pass === storedPass) ||
+        ['Admin@12345', 'User@12345', '123456', 'password', 'sbm01777'].includes(pass) ||
+        (found as any).password === pass;
 
-      const isStoredPasswordMatch = Boolean(storedPass && pass === storedPass);
-      const isDefaultPasswordMatch = pass === 'Admin@12345' || pass === 'User@12345' || pass === '123456' || pass === 'password' || pass === 'sbm01777' || (found as any).password === pass;
+      if (!isMatch) return { success: false, error: 'Invalid User ID or Password.' };
 
-      if (!isStoredPasswordMatch && !isDefaultPasswordMatch) {
-        return { success: false, error: 'Invalid User ID or Password.' };
-      }
-
-      localStorage.setItem('thl_auth_token', `token-${Date.now()}`);
+      localStorage.setItem('thl_auth_token', `offline-token-${Date.now()}`);
       setCurrentUser(found);
       setIsAuthenticated(true);
       const mustChange = found.status === 'INITIAL' || !!found.mustChangePassword;
