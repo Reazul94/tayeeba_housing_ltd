@@ -146,13 +146,28 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClos
       });
     } catch (e) {}
 
+    // Update local users list in localStorage so immediate login works seamlessly
+    try {
+      const saved = localStorage.getItem('thl_users_list');
+      if (saved) {
+        const list = JSON.parse(saved);
+        const updated = list.map((u: any) => {
+          if (u.userId === targetUserId || u.employeeCode === targetUserId || u.id === targetUserId) {
+            return { ...u, status: 'ACTIVE', mustChangePassword: false };
+          }
+          return u;
+        });
+        localStorage.setItem('thl_users_list', JSON.stringify(updated));
+      }
+    } catch (e) {}
+
     setSuccessMsg('Your password has been successfully reset! You can now sign in.');
     setLoading(false);
 
     setTimeout(() => {
       onClose();
       onSuccessLogin(targetUserId);
-    }, 2000);
+    }, 1800);
   };
 
   return (

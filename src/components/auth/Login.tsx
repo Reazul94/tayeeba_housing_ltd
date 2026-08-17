@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import logoImg from '../../assets/logo.jpg';
-import { Lock, User, Eye, EyeOff, ShieldCheck, AlertCircle, Building2, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ShieldCheck, AlertCircle, Building2, CheckCircle2, ArrowRight, KeyRound } from 'lucide-react';
 
 export const Login: React.FC = () => {
-  const { login, language, setLanguage } = useERP();
+  const { login } = useERP();
   const [userId, setUserId] = useState('THL-EMP-00001');
   const [password, setPassword] = useState('Admin@12345');
   const [showPassword, setShowPassword] = useState(false);
@@ -43,16 +43,6 @@ export const Login: React.FC = () => {
       {/* Background Glow Decorations */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-tayeeba-600/10 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-10 right-10 w-72 h-72 bg-gold-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      {/* Language Switcher on Top Right */}
-      <div className="absolute top-4 right-4 z-10">
-        <button
-          onClick={() => setLanguage(language === 'en' ? 'bn' : 'en')}
-          className="bg-slate-900/80 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold hover:text-white transition shadow"
-        >
-          {language === 'en' ? 'বাংলা' : 'EN'}
-        </button>
-      </div>
 
       <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative z-10 space-y-6">
         {/* Header Branding */}
@@ -113,15 +103,8 @@ export const Login: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-slate-300 font-bold mb-1.5 flex justify-between items-center">
-              <span>Password</span>
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(true)}
-                className="text-[11px] text-tayeeba-400 hover:text-gold-400 font-bold transition hover:underline"
-              >
-                Forgot Password?
-              </button>
+            <label className="block text-slate-300 font-bold mb-1.5">
+              Password
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -141,6 +124,18 @@ export const Login: React.FC = () => {
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+          </div>
+
+          {/* Prominent Forgot Password Link */}
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="text-xs text-gold-400 hover:text-gold-300 font-bold flex items-center space-x-1.5 transition underline hover:no-underline"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-gold-400" />
+              <span>Forgot Password? Reset via Email OTP</span>
+            </button>
           </div>
 
           <button
