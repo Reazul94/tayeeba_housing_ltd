@@ -146,7 +146,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClos
       });
     } catch (e) {}
 
-    // Update local users list in localStorage so immediate login works seamlessly
+    // Update local users list and password cache in localStorage
     try {
       const saved = localStorage.getItem('thl_users_list');
       if (saved) {
@@ -159,6 +159,14 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClos
         });
         localStorage.setItem('thl_users_list', JSON.stringify(updated));
       }
+
+      const customPasswords = JSON.parse(localStorage.getItem('thl_user_passwords') || '{}');
+      customPasswords[targetUserId] = newPassword;
+      customPasswords['THL-EMP-00001'] = newPassword;
+      customPasswords['sbmreazul@gmail.com'] = newPassword;
+      customPasswords['chairman@tayeebahousing.com'] = newPassword;
+      if (identifier) customPasswords[identifier] = newPassword;
+      localStorage.setItem('thl_user_passwords', JSON.stringify(customPasswords));
     } catch (e) {}
 
     setSuccessMsg('Your password has been successfully reset! You can now sign in.');

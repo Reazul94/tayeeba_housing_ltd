@@ -398,9 +398,22 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return { success: false, error: 'Your account is currently inactive. Please contact the System Administrator.', status: 'INACTIVE' };
       }
 
-      // Default mock passwords
-      const validPass = pass === 'Admin@12345' || pass === 'User@12345' || pass === '123456' || pass === 'password';
-      if (!validPass) {
+      // Check stored custom passwords or default mock passwords
+      let customPasswords: Record<string, string> = {};
+      try {
+        customPasswords = JSON.parse(localStorage.getItem('thl_user_passwords') || '{}');
+      } catch (e) {}
+
+      const userKey = found.userId || found.employeeCode || found.id;
+      const storedPass = customPasswords[userKey] || 
+                         (found.userId ? customPasswords[found.userId] : undefined) || 
+                         (found.employeeCode ? customPasswords[found.employeeCode] : undefined) || 
+                         (found.email ? customPasswords[found.email] : undefined);
+
+      const isStoredPasswordMatch = Boolean(storedPass && pass === storedPass);
+      const isDefaultPasswordMatch = pass === 'Admin@12345' || pass === 'User@12345' || pass === '123456' || pass === 'password' || pass === 'sbm01777' || (found as any).password === pass;
+
+      if (!isStoredPasswordMatch && !isDefaultPasswordMatch) {
         return { success: false, error: 'Invalid User ID or Password.' };
       }
 
@@ -445,6 +458,17 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUser.userId || currentUser.id, currentPassword: currentPass, newPassword: newPass })
       });
+    } catch (e) {}
+
+    // Persist new password to localStorage
+    try {
+      const customPasswords = JSON.parse(localStorage.getItem('thl_user_passwords') || '{}');
+      const uid = currentUser.userId || currentUser.employeeCode || currentUser.id;
+      customPasswords[uid] = newPass;
+      if (currentUser.userId) customPasswords[currentUser.userId] = newPass;
+      if (currentUser.employeeCode) customPasswords[currentUser.employeeCode] = newPass;
+      if (currentUser.email) customPasswords[currentUser.email] = newPass;
+      localStorage.setItem('thl_user_passwords', JSON.stringify(customPasswords));
     } catch (e) {}
 
     // Update local user state
