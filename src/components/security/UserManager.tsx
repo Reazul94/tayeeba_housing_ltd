@@ -10,7 +10,7 @@ import {
 export const UserManager: React.FC = () => {
   const { 
     usersList, employees, rolesList, designationsList, createUser, 
-    updateUserStatus, resetUserPassword, currentUser, language 
+    updateUser, updateUserStatus, resetUserPassword, currentUser, language 
   } = useERP();
 
   const isBn = language === 'bn';
@@ -43,7 +43,57 @@ export const UserManager: React.FC = () => {
 
   // Selected User Detail Modal
   const [viewingUser, setViewingUser] = useState<User | null>(null);
+  
+  // Edit User Information Modal State
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesignation, setEditDesignation] = useState('');
+  const [editDepartment, setEditDepartment] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editMobile, setEditMobile] = useState('');
+  const [editRoles, setEditRoles] = useState<string[]>([]);
+  const [editLoading, setEditLoading] = useState(false);
+
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
+
+  const handleOpenEdit = (user: User) => {
+    setEditingUser(user);
+    setEditName(user.name || (user as any).displayName || '');
+    setEditDesignation(user.designationTitle || user.role || 'Officer');
+    setEditDepartment(user.department || 'General');
+    setEditEmail(user.email || '');
+    setEditMobile((user as any).mobile || '');
+    setEditRoles(user.roles || [user.role]);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    if (!editName.trim()) {
+      alert('Please enter a valid Name.');
+      return;
+    }
+
+    setEditLoading(true);
+    const res = await updateUser(editingUser.id, {
+      name: editName.trim(),
+      designationTitle: editDesignation.trim(),
+      department: editDepartment.trim(),
+      email: editEmail.trim(),
+      mobile: editMobile.trim(),
+      roles: editRoles,
+      role: editRoles[0] as UserRole
+    });
+    setEditLoading(false);
+
+    if (res.success) {
+      setEditingUser(null);
+      setSuccessBanner(`User profile for ${editName} (${editingUser.userId || editingUser.employeeCode}) updated successfully!`);
+      setTimeout(() => setSuccessBanner(null), 4000);
+    } else {
+      alert(res.error || 'Failed to update user profile.');
+    }
+  };
 
   const allAvailableModules = [
     { id: 'dashboard', name: 'CEO Dashboard' },
@@ -279,6 +329,14 @@ export const UserManager: React.FC = () => {
                           className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
                         >
                           <Eye className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={() => handleOpenEdit(user)}
+                          title="Edit User Profile (Name, Designation, Department)"
+                          className="p-1.5 bg-slate-800 hover:bg-tayeeba-600/30 text-slate-300 hover:text-gold-400 border border-slate-700 hover:border-gold-500/40 rounded-lg transition"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
                         </button>
 
                         {!isSuperAdmin && (
@@ -613,6 +671,142 @@ export const UserManager: React.FC = () => {
             <div className="pt-2 flex justify-end">
               <button onClick={() => setViewingUser(null)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold">Close Summary</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT USER PROFILE MODAL */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto text-xs">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-tayeeba-600/30 text-gold-400 border border-gold-500/40 flex items-center justify-center">
+                  <Edit3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-white text-sm">Edit User Profile & Designation</h3>
+                  <p className="text-[11px] text-tayeeba-400 font-mono font-bold">{editingUser.userId || editingUser.employeeCode}</p>
+                </div>
+              </div>
+              <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">User ID / Code</label>
+                  <input
+                    type="text"
+                    value={editingUser.userId || editingUser.employeeCode}
+                    disabled
+                    className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-2 text-slate-400 font-mono font-bold cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold outline-none focus:border-tayeeba-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Designation Title</label>
+                  <input
+                    type="text"
+                    list="designations-datalist"
+                    value={editDesignation}
+                    onChange={(e) => setEditDesignation(e.target.value)}
+                    placeholder="e.g. Managing Director & CEO"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-tayeeba-500"
+                    required
+                  />
+                  <datalist id="designations-datalist">
+                    {designationsList.map(d => (
+                      <option key={d.designationId} value={d.name} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Department</label>
+                  <input
+                    type="text"
+                    value={editDepartment}
+                    onChange={(e) => setEditDepartment(e.target.value)}
+                    placeholder="e.g. Executive Management"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-tayeeba-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Corporate Email</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-tayeeba-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Mobile Contact</label>
+                  <input
+                    type="text"
+                    value={editMobile}
+                    onChange={(e) => setEditMobile(e.target.value)}
+                    placeholder="017xxxxxxxx"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-tayeeba-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Assigned Role</label>
+                <select
+                  value={editRoles[0] || 'SALES EXECUTIVE'}
+                  onChange={(e) => setEditRoles([e.target.value])}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold"
+                >
+                  {rolesList.map(r => (
+                    <option key={r.id} value={r.roleName}>{r.roleName}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-3 flex justify-end space-x-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="px-5 py-2 bg-tayeeba-600 hover:bg-tayeeba-500 text-white rounded-xl font-bold shadow-lg transition flex items-center space-x-1.5"
+                >
+                  {editLoading ? (
+                    <span>Saving...</span>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Save Profile Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

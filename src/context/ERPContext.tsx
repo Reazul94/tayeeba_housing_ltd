@@ -19,6 +19,8 @@ interface ERPContextType {
   // Navigation & System State
   currentTab: string;
   setCurrentTab: (tab: string) => void;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean | ((prev: boolean) => boolean)) => void;
   currentUser: User;
   setCurrentUserRole: (role: UserRole) => void;
   language: 'en' | 'bn';
@@ -41,6 +43,7 @@ interface ERPContextType {
   designationHistories: UserDesignationHistory[];
   loginHistories: UserLoginHistory[];
   createUser: (userData: any) => Promise<{ success: boolean; error?: string }>;
+  updateUser: (userId: string, updatedFields: Partial<User>) => Promise<{ success: boolean; error?: string }>;
   updateUserStatus: (userId: string, status: string, isActive?: boolean, isLocked?: boolean, reason?: string) => void;
   resetUserPassword: (userId: string) => void;
   saveRole: (role: UserRoleDefinition) => void;
@@ -114,8 +117,18 @@ const ERPContext = createContext<ERPContextType | undefined>(undefined);
 
 export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('thl_sidebar_collapsed');
+      return saved === 'true';
+    } catch (e) { return false; }
+  });
   const [language, setLanguage] = useState<'en' | 'bn'>('en');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  useEffect(() => {
+    localStorage.setItem('thl_sidebar_collapsed', String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -538,6 +551,56 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       logAuditAction('Created User Account', 'User Management', userData.employeeCode, undefined, `Provisioned user for ${userData.displayName}`);
       return { success: true };
     }
+  };
+
+  const updateUser = async (userId: string, updatedFields: Partial<User>): Promise<{ success: boolean; error?: string }> => {
+    setUsersList(prev => prev.map(u => {
+      if (u.id === userId || u.userId === userId) {
+        return {
+          ...u,
+          ...updatedFields,
+          name: updatedFields.name !== undefined ? updatedFields.name : u.name,
+          displayName: updatedFields.name !== undefined ? updatedFields.name : (u as any).displayName,
+          designationTitle: updatedFields.designationTitle !== undefined ? updatedFields.designationTitle : u.designationTitle,
+          department: updatedFields.department !== undefined ? updatedFields.department : u.department,
+          division: (updatedFields as any).division !== undefined ? (updatedFields as any).division : (u as any).division,
+          email: updatedFields.email !== undefined ? updatedFields.email : u.email,
+          mobile: updatedFields.mobile !== undefined ? updatedFields.mobile : u.mobile,
+          roles: updatedFields.roles !== undefined ? updatedFields.roles : u.roles,
+          role: updatedFields.role !== undefined ? updatedFields.role : (updatedFields.roles ? updatedFields.roles[0] : u.role)
+        };
+      }
+      return u;
+    }));
+
+    // If current logged-in user is updated, update currentUser state
+    if (currentUser.id === userId || currentUser.userId === userId) {
+      setCurrentUser(prev => ({
+        ...prev,
+        ...updatedFields,
+        name: updatedFields.name !== undefined ? updatedFields.name : prev.name,
+        designationTitle: updatedFields.designationTitle !== undefined ? updatedFields.designationTitle : prev.designationTitle,
+        department: updatedFields.department !== undefined ? updatedFields.department : prev.department
+      }));
+    }
+
+    try {
+      await fetch(`http://127.0.0.1:5000/api/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          displayName: updatedFields.name,
+          email: updatedFields.email,
+          mobile: updatedFields.mobile,
+          designationTitle: updatedFields.designationTitle,
+          department: updatedFields.department,
+          roles: updatedFields.roles
+        })
+      });
+    } catch (e) {}
+
+    logAuditAction('Updated User Profile', 'User Management', userId, undefined, `Updated details for ${updatedFields.name || userId}`);
+    return { success: true };
   };
 
   const updateUserStatus = (userId: string, newStatus: string, isActive?: boolean, isLocked?: boolean, reason?: string) => {
@@ -1091,6 +1154,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <ERPContext.Provider value={{
       currentTab,
       setCurrentTab,
+      sidebarCollapsed,
+      setSidebarCollapsed,
       currentUser,
       setCurrentUserRole,
       language,
@@ -1109,6 +1174,7 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       designationHistories,
       loginHistories,
       createUser,
+      updateUser,
       updateUserStatus,
       resetUserPassword,
       saveRole,

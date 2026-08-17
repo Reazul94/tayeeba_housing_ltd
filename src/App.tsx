@@ -5,6 +5,7 @@ import { Sidebar } from './components/common/Sidebar';
 import { Login } from './components/auth/Login';
 import { FirstLogin } from './components/auth/FirstLogin';
 import { AccessDenied } from './components/common/AccessDenied';
+import { SessionTimeoutWarning } from './components/common/SessionTimeoutWarning';
 
 import { CEODashboard } from './components/dashboard/CEODashboard';
 import { ProjectManager } from './components/projects/ProjectManager';
@@ -113,6 +114,7 @@ const ERPContent: React.FC = () => {
           {renderTabContent()}
         </main>
       </div>
+      <SessionTimeoutWarning />
     </div>
   );
 };

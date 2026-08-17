@@ -15,7 +15,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
   const { 
     currentUser, setCurrentUserRole, language, setLanguage, 
     searchQuery, setSearchQuery, notifications, markNotificationRead, 
-    setCurrentTab, logout, usersList
+    setCurrentTab, logout, usersList, sidebarCollapsed, setSidebarCollapsed
   } = useERP();
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
 
   return (
     <header className="h-16 bg-slate-900 border-b border-slate-800 text-slate-100 flex items-center justify-between px-3 md:px-6 sticky top-0 z-30 shadow-lg">
-      {/* Left: Mobile Menu Toggle & Branding */}
+      {/* Left: Mobile & Desktop Menu Toggle & Branding */}
       <div className="flex items-center space-x-2 md:space-x-3">
         {onToggleMobileSidebar && (
           <button 
@@ -66,6 +66,14 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
             <Menu className="w-5 h-5" />
           </button>
         )}
+
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className="hidden md:flex p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 border border-slate-700 transition hover:text-gold-400"
+          title={sidebarCollapsed ? "Expand Sidebar Menu" : "Collapse Sidebar Menu"}
+        >
+          <Menu className="w-4 h-4" />
+        </button>
 
         <img 
           src={logoImg} 

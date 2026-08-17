@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
+import { ForgotPasswordModal } from './ForgotPasswordModal';
 import logoImg from '../../assets/logo.jpg';
 import { Lock, User, Eye, EyeOff, ShieldCheck, AlertCircle, Building2, CheckCircle2, ArrowRight } from 'lucide-react';
 
@@ -8,8 +9,10 @@ export const Login: React.FC = () => {
   const [userId, setUserId] = useState('THL-EMP-00001');
   const [password, setPassword] = useState('Admin@12345');
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resetSuccessBanner, setResetSuccessBanner] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +85,14 @@ export const Login: React.FC = () => {
           </div>
         )}
 
+        {/* Reset Success Banner */}
+        {resetSuccessBanner && (
+          <div className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 p-3.5 rounded-2xl text-xs font-bold flex items-center space-x-2 animate-fadeIn">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>{resetSuccessBanner}</span>
+          </div>
+        )}
+
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div>
@@ -104,7 +115,13 @@ export const Login: React.FC = () => {
           <div>
             <label className="block text-slate-300 font-bold mb-1.5 flex justify-between items-center">
               <span>Password</span>
-              <span className="text-[10px] text-slate-500">Contact admin if forgotten</span>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-[11px] text-tayeeba-400 hover:text-gold-400 font-bold transition hover:underline"
+              >
+                Forgot Password?
+              </button>
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -192,6 +209,18 @@ export const Login: React.FC = () => {
       <footer className="mt-6 text-center text-[11px] text-slate-500">
         © 2026 Tayeeba Housing Ltd. • Gulshan-2, Dhaka • Central LAN Network
       </footer>
+
+      {showForgotPassword && (
+        <ForgotPasswordModal
+          onClose={() => setShowForgotPassword(false)}
+          onSuccessLogin={(resetUid) => {
+            setShowForgotPassword(false);
+            setUserId(resetUid);
+            setPassword('');
+            setResetSuccessBanner(`Password for ${resetUid} reset successfully! Please sign in with your new credentials.`);
+          }}
+        />
+      )}
     </div>
   );
 };

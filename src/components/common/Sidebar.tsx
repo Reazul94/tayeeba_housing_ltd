@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Building, MapPin, Users, CalendarCheck, FileCheck, 
   Clock, CreditCard, AlertCircle, Calculator, Receipt, Landmark, 
   Award, HardHat, ShoppingCart, UserCheck, RefreshCw, FolderLock, 
-  BarChart3, ShieldAlert, Settings, ChevronRight, X, Shield, KeyRound, Network, History
+  BarChart3, ShieldAlert, Settings, ChevronRight, ChevronLeft, X, Shield, 
+  KeyRound, Network, History, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -13,7 +14,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMobile }) => {
-  const { currentTab, setCurrentTab, language, hasPermission, currentUser } = useERP();
+  const { currentTab, setCurrentTab, language, hasPermission, sidebarCollapsed, setSidebarCollapsed } = useERP();
 
   const isBn = language === 'bn';
 
@@ -85,9 +86,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
       )}
 
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col transition-transform duration-300 ease-in-out select-none overflow-y-auto
+        fixed inset-y-0 left-0 z-50 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col transition-all duration-300 ease-in-out select-none overflow-y-auto overflow-x-hidden
         md:translate-x-0 md:static md:z-0 md:h-[calc(100vh-4rem)] md:sticky md:top-16
-        ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}
+        ${sidebarCollapsed ? 'md:w-16' : 'md:w-64'}
       `}>
         {/* Mobile Header Close Button */}
         <div className="flex md:hidden items-center justify-between p-4 border-b border-slate-800">
@@ -97,7 +99,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
           </button>
         </div>
 
-        <div className="py-3 px-3 space-y-5 flex-1">
+        {/* Desktop Collapse / Expand Header Pill */}
+        <div className="hidden md:flex items-center justify-between px-3 py-2 border-b border-slate-800/80 bg-slate-950/40">
+          {!sidebarCollapsed && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+              MAIN NAVIGATION
+            </span>
+          )}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className={`p-1 text-slate-400 hover:text-gold-400 rounded-lg hover:bg-slate-800 transition ${sidebarCollapsed ? 'mx-auto' : ''}`}
+            title={sidebarCollapsed ? "Expand Sidebar Menu (Ctrl+B)" : "Collapse Sidebar Menu (Ctrl+B)"}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="w-4 h-4 text-gold-400" />
+            ) : (
+              <PanelLeftClose className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+
+        <div className={`py-3 ${sidebarCollapsed ? 'px-1.5' : 'px-3'} space-y-4 flex-1`}>
           {menuSections.map((section, idx) => {
             // Filter section items by user's view permission
             const permittedItems = section.items.filter(item => hasPermission(item.id, 'view'));
@@ -105,28 +127,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
 
             return (
               <div key={idx}>
-                <div className="px-3 mb-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  {section.title}
-                </div>
+                {!sidebarCollapsed ? (
+                  <div className="px-3 mb-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider truncate">
+                    {section.title}
+                  </div>
+                ) : (
+                  <div className="my-1.5 border-t border-slate-800/60" />
+                )}
+
                 <div className="space-y-0.5">
                   {permittedItems.map(item => {
                     const Icon = item.icon;
                     const isActive = currentTab === item.id;
+
                     return (
                       <button
                         key={item.id}
                         onClick={() => handleSelectTab(item.id)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        title={item.label}
+                        className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-0 py-2.5' : 'justify-between px-3 py-2'} rounded-xl text-xs font-medium transition-all ${
                           isActive 
-                            ? 'bg-gradient-to-r from-tayeeba-800 to-tayeeba-900 text-white font-semibold shadow-md border-l-4 border-gold-400' 
+                            ? 'bg-gradient-to-r from-tayeeba-800 to-tayeeba-900 text-white font-bold shadow-md border-l-4 border-gold-400' 
                             : 'hover:bg-slate-800/80 hover:text-slate-100 text-slate-300'
                         }`}
                       >
-                        <div className="flex items-center space-x-2.5">
-                          <Icon className={`w-4 h-4 ${isActive ? 'text-gold-400' : 'text-slate-400'}`} />
-                          <span>{item.label}</span>
+                        <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-2.5'}`}>
+                          <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-gold-400' : 'text-slate-400'}`} />
+                          {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
                         </div>
-                        {isActive && <ChevronRight className="w-3.5 h-3.5 text-gold-400" />}
+                        {!sidebarCollapsed && isActive && <ChevronRight className="w-3.5 h-3.5 text-gold-400 flex-shrink-0" />}
                       </button>
                     );
                   })}
@@ -136,10 +165,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
           })}
         </div>
         
-        {/* Bottom Footer Info */}
-        <div className="mt-auto p-3 border-t border-slate-800 bg-slate-950/60 text-center">
-          <div className="text-[11px] text-slate-400 font-semibold">Tayeeba Housing Ltd. ERP</div>
-          <div className="text-[10px] text-slate-500 font-mono">v2.5 • Central LAN Active</div>
+        {/* Bottom Footer Info & Collapse Toggle */}
+        <div className={`mt-auto p-2.5 border-t border-slate-800 bg-slate-950/60 text-center ${sidebarCollapsed ? 'px-1' : ''}`}>
+          {!sidebarCollapsed ? (
+            <>
+              <div className="text-[11px] text-slate-400 font-semibold truncate">Tayeeba Housing Ltd. ERP</div>
+              <div className="text-[10px] text-slate-500 font-mono">v2.5 • Central LAN Active</div>
+            </>
+          ) : (
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              title="Expand Sidebar"
+              className="p-1.5 text-slate-400 hover:text-gold-400 hover:bg-slate-800 rounded-lg transition"
+            >
+              <PanelLeftOpen className="w-4 h-4 text-gold-400" />
+            </button>
+          )}
         </div>
       </aside>
     </>

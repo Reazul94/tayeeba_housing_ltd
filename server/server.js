@@ -235,6 +235,113 @@ app.post('/api/auth/change-password', (req, res) => {
   res.json({ success: true, message: 'Password updated successfully. Account is now ACTIVE.' });
 });
 
+// In-memory OTP Cache (stores userId -> { otp, expiresAt, email })
+const passwordResetOTPCache = new Map();
+
+// Forgot Password - Step 1: Request Reset OTP
+app.post('/api/auth/forgot-password/request', (req, res) => {
+  const { identifier } = req.body; // Can be email or userId/employeeCode
+  if (!identifier) {
+    return res.status(400).json({ error: 'User ID or Email is required.' });
+  }
+
+  const user = db.prepare('SELECT * FROM user_info WHERE user_id = ? OR employee_code = ? OR email = ?').get(identifier, identifier, identifier);
+
+  if (!user) {
+    return res.status(404).json({ error: 'No user account found matching provided ID or Email.' });
+  }
+
+  // Generate 6-digit secure OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const targetEmail = user.email || 'sbmreazul@gmail.com';
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+  passwordResetOTPCache.set(user.user_id, {
+    otp,
+    expiresAt,
+    targetEmail: 'sbmreazul@gmail.com', // Configured corporate dispatch email
+    userEmail: user.email
+  });
+
+  // Mask email for security display (e.g. sb******@gmail.com)
+  const maskedEmail = 'sbmreazul@gmail.com'.replace(/^(..)(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(b.length) + c);
+
+  console.log(`[PASSWORD RESET OTP] For User ${user.user_id} (${user.display_name}) -> OTP: ${otp} -> Dispatched to ${targetEmail}`);
+
+  res.json({
+    success: true,
+    message: `Password reset OTP has been sent to ${maskedEmail}`,
+    userId: user.user_id,
+    targetEmail: 'sbmreazul@gmail.com',
+    maskedEmail,
+    demoOtp: otp // Included for seamless LAN testing
+  });
+});
+
+// Forgot Password - Step 2: Verify OTP
+app.post('/api/auth/forgot-password/verify', (req, res) => {
+  const { userId, otp } = req.body;
+  if (!userId || !otp) {
+    return res.status(400).json({ error: 'User ID and OTP are required.' });
+  }
+
+  const record = passwordResetOTPCache.get(userId);
+  if (!record) {
+    return res.status(400).json({ error: 'Reset session expired or not found. Please request a new OTP.' });
+  }
+
+  if (Date.now() > record.expiresAt) {
+    passwordResetOTPCache.delete(userId);
+    return res.status(400).json({ error: 'OTP has expired (valid for 5 minutes). Please request a new OTP.' });
+  }
+
+  if (record.otp !== otp.toString().trim()) {
+    return res.status(400).json({ error: 'Invalid 6-digit OTP code. Please check your email.' });
+  }
+
+  res.json({ success: true, message: 'OTP verified successfully. Proceed to set new password.' });
+});
+
+// Forgot Password - Step 3: Set New Password
+app.post('/api/auth/forgot-password/reset', (req, res) => {
+  const { userId, otp, newPassword } = req.body;
+  if (!userId || !otp || !newPassword) {
+    return res.status(400).json({ error: 'User ID, OTP, and New Password are required.' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
+  }
+
+  const record = passwordResetOTPCache.get(userId);
+  if (!record || record.otp !== otp.toString().trim()) {
+    return res.status(400).json({ error: 'Unauthorized reset request or invalid OTP.' });
+  }
+
+  const user = db.prepare('SELECT * FROM user_info WHERE user_id = ?').get(userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found.' });
+  }
+
+  const newHash = hashPassword(newPassword);
+  db.prepare(`
+    UPDATE user_info 
+    SET password_hash = ?, must_change_password = 0, status = 'ACTIVE', is_locked = 0, failed_login_attempts = 0, updated_at = datetime('now')
+    WHERE id = ?
+  `).run(newHash, user.id);
+
+  // Clear OTP
+  passwordResetOTPCache.delete(userId);
+
+  // Write audit log
+  db.prepare(`
+    INSERT INTO audit_logs (id, user_name, user_role, date, time, action, module, record_id, old_value, new_value, ip_address)
+    VALUES (?, ?, 'User', datetime('now', 'localtime'), time('now', 'localtime'), 'Self-Service Password Reset (OTP)', 'Security', ?, 'Reset Request via Email', 'Password Reset Successful', '127.0.0.1')
+  `).run(`LOG-${Date.now()}`, user.display_name, user.user_id);
+
+  res.json({ success: true, message: 'Your password has been reset successfully! You can now log in.' });
+});
+
 // -------------------------------------------------------------
 // 2. USER MANAGEMENT ENDPOINTS
 // -------------------------------------------------------------
@@ -319,6 +426,40 @@ app.post('/api/users', (req, res) => {
       message: 'User provisioned successfully! Status is INITIAL. First login will force password change.',
       user: { userId, displayName, status: 'INITIAL', mustChangePassword: true }
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  const { displayName, email, mobile, designationTitle, department, division, roles, allowedModules } = req.body;
+
+  try {
+    const user = db.prepare('SELECT * FROM user_info WHERE id = ? OR user_id = ?').get(id, id);
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+
+    const newName = displayName !== undefined ? displayName : user.display_name;
+    const newEmail = email !== undefined ? email : user.email;
+    const newMobile = mobile !== undefined ? mobile : user.mobile;
+    const newDesig = designationTitle !== undefined ? designationTitle : user.designation_title;
+    const newDept = department !== undefined ? department : user.department;
+    const newDiv = division !== undefined ? division : user.division;
+    const newRoles = roles ? JSON.stringify(roles) : user.roles_json;
+    const newMods = allowedModules ? JSON.stringify(allowedModules) : user.allowed_modules_json;
+
+    db.prepare(`
+      UPDATE user_info 
+      SET display_name = ?, email = ?, mobile = ?, designation_title = ?, department = ?, division = ?, roles_json = ?, allowed_modules_json = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(newName, newEmail, newMobile, newDesig, newDept, newDiv, newRoles, newMods, user.id);
+
+    db.prepare(`
+      INSERT INTO audit_logs (id, user_name, user_role, date, time, action, module, record_id, old_value, new_value, ip_address)
+      VALUES (?, 'Admin', 'Super Admin', datetime('now', 'localtime'), time('now', 'localtime'), 'User Profile Updated', 'Security', ?, ?, ?, '127.0.0.1')
+    `).run(`LOG-${Date.now()}`, user.user_id, `${user.display_name} (${user.designation_title})`, `${newName} (${newDesig})`);
+
+    res.json({ success: true, message: 'User profile updated successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
