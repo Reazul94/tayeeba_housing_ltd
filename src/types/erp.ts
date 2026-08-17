@@ -1,3 +1,5 @@
+export * from './security';
+
 export type UserRole = 
   | 'Super Admin'
   | 'CEO/Director'
@@ -5,14 +7,24 @@ export type UserRole =
   | 'Sales Manager'
   | 'Sales Executive'
   | 'Marketing'
-  | 'HR';
+  | 'HR'
+  | string;
 
 export interface User {
   id: string;
+  userId?: string;
+  employeeCode?: string;
   name: string;
   email: string;
   role: UserRole;
+  roles?: string[];
+  status?: string;
+  mustChangePassword?: boolean;
+  department?: string;
+  designationTitle?: string;
   avatar?: string;
+  allowedModules?: string[];
+  menuPermissions?: Record<string, { view: boolean; create: boolean; edit: boolean; delete: boolean; approve: boolean; export: boolean; print?: boolean }>;
   permissions: {
     view: boolean;
     create: boolean;
@@ -20,6 +32,7 @@ export interface User {
     delete: boolean;
     approve: boolean;
     export: boolean;
+    print?: boolean;
   };
 }
 
@@ -233,7 +246,7 @@ export interface JournalEntry {
   description: string;
   lines: JournalEntryLine[];
   createdBy: string;
-  status: 'Approved' | 'Draft';
+  status: 'Approved' | 'Draft' | 'Posted';
 }
 
 export interface Expense {

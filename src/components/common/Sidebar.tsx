@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building, MapPin, Users, CalendarCheck, FileCheck, 
   Clock, CreditCard, AlertCircle, Calculator, Receipt, Landmark, 
   Award, HardHat, ShoppingCart, UserCheck, RefreshCw, FolderLock, 
-  BarChart3, ShieldAlert, Settings, ChevronRight, X
+  BarChart3, ShieldAlert, Settings, ChevronRight, X, Shield, KeyRound, Network, History
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -13,7 +13,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMobile }) => {
-  const { currentTab, setCurrentTab, language } = useERP();
+  const { currentTab, setCurrentTab, language, hasPermission, currentUser } = useERP();
 
   const isBn = language === 'bn';
 
@@ -47,20 +47,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
       ]
     },
     {
-      title: isBn ? "অপারেশনস ও এইচআর" : "Operations & Operations",
+      title: isBn ? "অপারেশনস ও এইচআর" : "Operations & HR",
       items: [
         { id: 'development', label: isBn ? "সাইট ডেভেলপমেন্ট" : "Site Development", icon: HardHat },
         { id: 'hr', label: isBn ? "এইচআর ও পে-রোল" : "HR & Payroll", icon: UserCheck },
+        { id: 'organogram', label: isBn ? "অরগানোগ্রাম পদবি" : "Organogram Hierarchy", icon: Network },
         { id: 'transfer', label: isBn ? "প্লট ট্রান্সফার ও রিফান্ড" : "Plot Transfer & Refund", icon: RefreshCw },
         { id: 'documents', label: isBn ? "ডকুমেন্ট ভল্ট" : "Document Vault", icon: FolderLock },
       ]
     },
     {
-      title: isBn ? "রিপোর্টস ও সিকিউরিটি" : "Reports & System Admin",
+      title: isBn ? "সিকিউরিটি ও অ্যাডমিন" : "Security & System Admin",
       items: [
+        { id: 'users', label: isBn ? "ইউজার ম্যানেজমেন্ট" : "User Management", icon: Users },
+        { id: 'roles', label: isBn ? "রোল ও পারমিশন (RBAC)" : "Role & Permissions", icon: Shield },
+        { id: 'login-history', label: isBn ? "লগইন অডিট ট্রেইল" : "Login Audit Trail", icon: History },
         { id: 'reports', label: isBn ? "রিপোর্টস ও এনালাইটিক্স" : "Reports & Analytics", icon: BarChart3 },
-        { id: 'audit', label: isBn ? "অডিট ট্রেইল লগ" : "Audit Trail", icon: ShieldAlert },
-        { id: 'settings', label: isBn ? "সিস্টেম সেটিংস & RBAC" : "System Settings", icon: Settings },
+        { id: 'audit', label: isBn ? "সিস্টেম অডিট লগ" : "System Audit Log", icon: ShieldAlert },
+        { id: 'settings', label: isBn ? "সিস্টেম সেটিংস & LAN" : "System Settings", icon: Settings },
       ]
     }
   ];
@@ -94,42 +98,48 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
         </div>
 
         <div className="py-3 px-3 space-y-5 flex-1">
-          {menuSections.map((section, idx) => (
-            <div key={idx}>
-              <div className="px-3 mb-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                {section.title}
+          {menuSections.map((section, idx) => {
+            // Filter section items by user's view permission
+            const permittedItems = section.items.filter(item => hasPermission(item.id, 'view'));
+            if (permittedItems.length === 0) return null;
+
+            return (
+              <div key={idx}>
+                <div className="px-3 mb-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  {section.title}
+                </div>
+                <div className="space-y-0.5">
+                  {permittedItems.map(item => {
+                    const Icon = item.icon;
+                    const isActive = currentTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleSelectTab(item.id)}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                          isActive 
+                            ? 'bg-gradient-to-r from-tayeeba-800 to-tayeeba-900 text-white font-semibold shadow-md border-l-4 border-gold-400' 
+                            : 'hover:bg-slate-800/80 hover:text-slate-100 text-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2.5">
+                          <Icon className={`w-4 h-4 ${isActive ? 'text-gold-400' : 'text-slate-400'}`} />
+                          <span>{item.label}</span>
+                        </div>
+                        {isActive && <ChevronRight className="w-3.5 h-3.5 text-gold-400" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="space-y-0.5">
-                {section.items.map(item => {
-                  const Icon = item.icon;
-                  const isActive = currentTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleSelectTab(item.id)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        isActive 
-                          ? 'bg-gradient-to-r from-tayeeba-800 to-tayeeba-900 text-white font-semibold shadow-md border-l-4 border-gold-400' 
-                          : 'hover:bg-slate-800/80 hover:text-slate-100 text-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2.5">
-                        <Icon className={`w-4 h-4 ${isActive ? 'text-gold-400' : 'text-slate-400'}`} />
-                        <span>{item.label}</span>
-                      </div>
-                      {isActive && <ChevronRight className="w-3.5 h-3.5 text-gold-400" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         
         {/* Bottom Footer Info */}
         <div className="mt-auto p-3 border-t border-slate-800 bg-slate-950/60 text-center">
-          <div className="text-[11px] text-slate-400 font-semibold">Tayeeba Housing Ltd.</div>
-          <div className="text-[10px] text-slate-500">Dhaka, Bangladesh • 2026</div>
+          <div className="text-[11px] text-slate-400 font-semibold">Tayeeba Housing Ltd. ERP</div>
+          <div className="text-[10px] text-slate-500 font-mono">v2.5 • Central LAN Active</div>
         </div>
       </aside>
     </>

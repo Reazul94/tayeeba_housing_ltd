@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { ERPProvider, useERP } from './context/ERPContext';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
+import { Login } from './components/auth/Login';
+import { FirstLogin } from './components/auth/FirstLogin';
+import { AccessDenied } from './components/common/AccessDenied';
 
 import { CEODashboard } from './components/dashboard/CEODashboard';
 import { ProjectManager } from './components/projects/ProjectManager';
@@ -22,12 +25,32 @@ import { DocumentManager } from './components/documents/DocumentManager';
 import { ReportManager } from './components/reports/ReportManager';
 import { AuditManager } from './components/audit/AuditManager';
 import { SettingsManager } from './components/settings/SettingsManager';
+import { UserManager } from './components/security/UserManager';
+import { RoleManager } from './components/security/RoleManager';
+import { OrganogramManager } from './components/security/OrganogramManager';
+import { LoginHistory } from './components/security/LoginHistory';
 
 const ERPContent: React.FC = () => {
-  const { currentTab } = useERP();
+  const { currentTab, isAuthenticated, mustChangePassword, hasPermission } = useERP();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  // 1. Unauthenticated -> Show Enterprise Login Screen
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  // 2. Mandatory First-Login Password Change -> Show FirstLogin Wizard
+  if (mustChangePassword) {
+    return <FirstLogin />;
+  }
+
+  // 3. Permission Route Guard Evaluation
   const renderTabContent = () => {
+    // Check if user has permission to view current module
+    if (!hasPermission(currentTab, 'view') && currentTab !== 'dashboard') {
+      return <AccessDenied moduleName={currentTab} />;
+    }
+
     switch (currentTab) {
       case 'dashboard':
         return <CEODashboard />;
@@ -54,6 +77,8 @@ const ERPContent: React.FC = () => {
         return <DueManager />;
       case 'hr':
         return <HRManager />;
+      case 'organogram':
+        return <OrganogramManager />;
       case 'development':
         return <DevelopmentManager />;
       case 'vendors':
@@ -66,6 +91,12 @@ const ERPContent: React.FC = () => {
         return <ReportManager />;
       case 'audit':
         return <AuditManager />;
+      case 'users':
+        return <UserManager />;
+      case 'roles':
+        return <RoleManager />;
+      case 'login-history':
+        return <LoginHistory />;
       case 'settings':
         return <SettingsManager />;
       default:

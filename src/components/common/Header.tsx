@@ -4,7 +4,7 @@ import { UserRole } from '../../types/erp';
 import logoImg from '../../assets/logo.jpg';
 import { 
   Building2, Search, Bell, Globe, UserCheck, Shield, ChevronDown, 
-  CheckCircle, AlertTriangle, FileText, X, Edit3, User, Check, Menu
+  CheckCircle, AlertTriangle, FileText, X, Edit3, User, Check, Menu, LogOut, KeyRound
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -15,7 +15,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
   const { 
     currentUser, setCurrentUserRole, language, setLanguage, 
     searchQuery, setSearchQuery, notifications, markNotificationRead, 
-    setCurrentTab 
+    setCurrentTab, logout, usersList
   } = useERP();
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -78,14 +78,14 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
               TAYEEBA HOUSING <span className="text-gold-400">LTD.</span>
             </h1>
             <span className="bg-tayeeba-950 text-tayeeba-400 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-bold border border-tayeeba-600/40">
-              ERP v2.4
+              ERP v2.5
             </span>
             <span className="hidden sm:flex items-center space-x-1 bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-500/40" title="Central LAN Database Connected">
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
               <span>LAN ONLINE</span>
             </span>
           </div>
-          <p className="hidden sm:block text-[11px] text-slate-400 font-medium">Real Estate ERP & Accounts Platform</p>
+          <p className="hidden sm:block text-[11px] text-slate-400 font-medium">Real Estate ERP, CRM & Accounts Platform</p>
         </div>
       </div>
 
@@ -109,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
         )}
       </div>
 
-      {/* Right: Actions, Language Toggle, Role Selector, Notifications */}
+      {/* Right: Actions, Language Toggle, Role Selector, Notifications, Logout */}
       <div className="flex items-center space-x-2 md:space-x-3">
         {/* Language Switcher */}
         <button
@@ -121,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
           <span>{language === 'en' ? 'EN' : 'বাংলা'}</span>
         </button>
 
-        {/* Role Selector (Demo switcher) */}
+        {/* Role Switcher (For testing permissions) */}
         <div className="relative">
           <button
             onClick={() => setShowRoleMenu(!showRoleMenu)}
@@ -133,22 +133,24 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
           </button>
 
           {showRoleMenu && (
-            <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl py-1 z-50">
+            <div className="absolute right-0 mt-2 w-52 bg-slate-800 border border-slate-700 rounded-xl shadow-xl py-1 z-50">
               <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 border-b border-slate-700 uppercase tracking-wider">
-                Switch User Role
+                Switch User Account / Role
               </div>
-              {roles.map(r => (
+              {usersList.map(u => (
                 <button
-                  key={r}
+                  key={u.id}
                   onClick={() => {
-                    setCurrentUserRole(r);
-                    setProfileRole(r);
+                    setCurrentUserRole(u.role);
                     setShowRoleMenu(false);
                   }}
-                  className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-700/70 transition ${currentUser.role === r ? 'text-tayeeba-400 font-bold bg-slate-700/30' : 'text-slate-200'}`}
+                  className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-700/70 transition ${currentUser.role === u.role ? 'text-tayeeba-400 font-bold bg-slate-700/30' : 'text-slate-200'}`}
                 >
-                  <span>{r}</span>
-                  {currentUser.role === r && <CheckCircle className="w-3.5 h-3.5 text-tayeeba-400" />}
+                  <div>
+                    <div className="font-bold">{u.name}</div>
+                    <div className="text-[10px] text-slate-400">{u.role} ({u.userId || u.employeeCode})</div>
+                  </div>
+                  {currentUser.role === u.role && <CheckCircle className="w-3.5 h-3.5 text-tayeeba-400 flex-shrink-0" />}
                 </button>
               ))}
             </div>
@@ -207,29 +209,39 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
           )}
         </div>
 
-        {/* Editable User Avatar Badge */}
+        {/* User Profile Avatar & ID Badge */}
         <button 
           onClick={() => setShowProfileModal(true)}
           className="flex items-center space-x-2 pl-2 border-l border-slate-800 hover:opacity-90 transition group text-left cursor-pointer"
-          title="Click to Edit Profile"
+          title="Click to View/Edit Profile"
         >
           <div className="w-8 h-8 rounded-full bg-tayeeba-600 text-white font-bold text-xs flex items-center justify-center shadow-md border border-tayeeba-400 group-hover:scale-105 transition">
-            {profileName.charAt(0)}
+            {currentUser.name ? currentUser.name.charAt(0) : 'U'}
           </div>
           <div className="hidden lg:block text-left">
             <div className="text-xs font-bold text-slate-100 flex items-center space-x-1">
-              <span>{profileName}</span>
-              <Edit3 className="w-3 h-3 text-tayeeba-400 opacity-0 group-hover:opacity-100 transition" />
+              <span>{currentUser.name}</span>
             </div>
-            <div className="text-[10px] text-slate-400 font-medium">{profileRole}</div>
+            <div className="text-[10px] text-tayeeba-400 font-mono font-bold">
+              {currentUser.userId || currentUser.employeeCode || currentUser.role}
+            </div>
           </div>
+        </button>
+
+        {/* Logout Button */}
+        <button
+          onClick={logout}
+          className="p-2 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 rounded-lg border border-slate-700 transition"
+          title="Sign Out of ERP"
+        >
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Editable User Profile Modal */}
+      {/* User Profile Details Modal */}
       {showProfileModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 relative">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 relative text-xs">
             <button 
               onClick={() => setShowProfileModal(false)}
               className="absolute right-4 top-4 text-slate-400 hover:text-white"
@@ -238,12 +250,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
             </button>
 
             <div className="flex items-center space-x-3 border-b border-slate-800 pb-3">
-              <div className="w-12 h-12 rounded-full bg-tayeeba-600 text-white font-extrabold text-lg flex items-center justify-center shadow-lg border-2 border-gold-400">
-                {profileName.charAt(0)}
+              <div className="w-12 h-12 rounded-2xl bg-tayeeba-600 text-white font-extrabold text-lg flex items-center justify-center shadow-lg border-2 border-gold-400">
+                {currentUser.name ? currentUser.name.charAt(0) : 'U'}
               </div>
               <div>
-                <h3 className="font-extrabold text-white text-base">Edit User Profile</h3>
-                <p className="text-xs text-slate-400">Update display name, role title & credentials</p>
+                <h3 className="font-extrabold text-white text-base">{currentUser.name}</h3>
+                <p className="text-xs text-tayeeba-400 font-mono font-bold">{currentUser.userId || currentUser.employeeCode}</p>
+                <p className="text-[11px] text-slate-400">{currentUser.designationTitle || currentUser.role} • {currentUser.department || 'Management'}</p>
               </div>
             </div>
 
@@ -254,56 +267,64 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
               </div>
             )}
 
-            <form onSubmit={handleSaveProfile} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveProfile} className="space-y-3.5">
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Full Name</label>
+                <label className="block text-slate-300 font-bold mb-1">User ID / Employee Code</label>
+                <input 
+                  type="text"
+                  value={currentUser.userId || currentUser.employeeCode || 'THL-EMP-00001'}
+                  disabled
+                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-2 text-slate-400 font-mono font-bold cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Display Name</label>
                 <input 
                   type="text"
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm focus:border-tayeeba-500 outline-none"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold outline-none focus:border-tayeeba-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Email Address</label>
+                <label className="block text-slate-300 font-bold mb-1">Corporate Email</label>
                 <input 
                   type="email"
                   value={profileEmail}
                   onChange={(e) => setProfileEmail(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:border-tayeeba-500 outline-none"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-tayeeba-500"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Assigned Role</label>
-                <select
-                  value={profileRole}
-                  onChange={(e) => setProfileRole(e.target.value as UserRole)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-xs focus:border-tayeeba-500 outline-none"
-                >
-                  {roles.map(r => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="pt-2 flex justify-end space-x-2">
+              <div className="pt-2 flex items-center justify-between border-t border-slate-800">
                 <button 
                   type="button" 
-                  onClick={() => setShowProfileModal(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700 transition"
+                  onClick={() => { setShowProfileModal(false); logout(); }}
+                  className="px-3.5 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl font-bold flex items-center space-x-1.5 transition"
                 >
-                  Cancel
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Log Out</span>
                 </button>
-                <button 
-                  type="submit"
-                  className="px-5 py-2 bg-tayeeba-600 hover:bg-tayeeba-500 text-white rounded-xl font-bold shadow-lg transition"
-                >
-                  Save Profile
-                </button>
+                
+                <div className="flex space-x-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowProfileModal(false)}
+                    className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-5 py-2 bg-tayeeba-600 hover:bg-tayeeba-500 text-white rounded-xl font-bold shadow-lg transition"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </form>
           </div>

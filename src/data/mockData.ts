@@ -1,44 +1,249 @@
 import { 
   Project, Plot, Customer, Lead, SiteVisit, Booking, Installment, 
   PaymentReceipt, Account, JournalEntry, Expense, LandParcel, 
-  Commission, Vendor, Employee, Payroll, AuditLog, NotificationItem, User 
+  Commission, Vendor, Employee, Payroll, AuditLog, NotificationItem, User,
+  UserInfo, UserRoleDefinition, UserDesignation, UserDesignationHistory, UserLoginHistory
 } from '../types/erp';
 
 export const mockUsers: User[] = [
   {
     id: 'USR-01',
+    userId: 'THL-EMP-00001',
+    employeeCode: 'THL-EMP-00001',
     name: 'Al-Haj Engr. Tayeebur Rahman',
     email: 'chairman@tayeebahousing.com',
     role: 'Super Admin',
-    permissions: { view: true, create: true, edit: true, delete: true, approve: true, export: true }
+    roles: ['SUPER ADMIN'],
+    status: 'ACTIVE',
+    mustChangePassword: false,
+    designationTitle: 'Managing Director & CEO',
+    department: 'Executive Management',
+    allowedModules: ['ALL'],
+    permissions: { view: true, create: true, edit: true, delete: true, approve: true, export: true, print: true }
   },
   {
     id: 'USR-02',
+    userId: 'THL-EMP-00002',
+    employeeCode: 'THL-EMP-00002',
     name: 'Tariqul Islam Siddiqui',
     email: 'md@tayeebahousing.com',
     role: 'CEO/Director',
-    permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true }
+    roles: ['CEO / DIRECTOR'],
+    status: 'ACTIVE',
+    mustChangePassword: false,
+    designationTitle: 'Executive Director',
+    department: 'Board of Directors',
+    allowedModules: ['ALL'],
+    permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true }
   },
   {
     id: 'USR-03',
+    userId: 'THL-EMP-00021',
+    employeeCode: 'THL-EMP-00021',
     name: 'Mahfuzur Rahman FCA',
     email: 'accounts@tayeebahousing.com',
     role: 'Accounts',
-    permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true }
+    roles: ['ACCOUNTS MANAGER'],
+    status: 'ACTIVE',
+    mustChangePassword: false,
+    designationTitle: 'Chief Financial Officer (CFO)',
+    department: 'Accounts & Finance',
+    allowedModules: ['dashboard', 'accounting', 'expenses', 'collections', 'dues', 'vendors', 'land', 'reports'],
+    permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true }
   },
   {
     id: 'USR-04',
+    userId: 'THL-EMP-00032',
+    employeeCode: 'THL-EMP-00032',
     name: 'Kamrul Hasan',
     email: 'sales.head@tayeebahousing.com',
     role: 'Sales Manager',
-    permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true }
+    roles: ['SALES MANAGER'],
+    status: 'ACTIVE',
+    mustChangePassword: false,
+    designationTitle: 'Head of Sales',
+    department: 'Sales & Marketing',
+    allowedModules: ['dashboard', 'projects', 'inventory', 'crm', 'bookings', 'installments', 'collections', 'dues', 'sales', 'reports'],
+    permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true }
   },
   {
     id: 'USR-05',
+    userId: 'THL-EMP-00045',
+    employeeCode: 'THL-EMP-00045',
     name: 'Rafiqul Islam',
     email: 'rafiq.sales@tayeebahousing.com',
     role: 'Sales Executive',
-    permissions: { view: true, create: true, edit: false, delete: false, approve: false, export: true }
+    roles: ['SALES EXECUTIVE'],
+    status: 'ACTIVE',
+    mustChangePassword: false,
+    designationTitle: 'Senior Sales Executive',
+    department: 'Sales & Marketing',
+    allowedModules: ['dashboard', 'projects', 'inventory', 'crm', 'bookings', 'installments', 'collections', 'dues', 'sales'],
+    permissions: { view: true, create: true, edit: false, delete: false, approve: false, export: true, print: true }
+  },
+  {
+    id: 'USR-06',
+    userId: 'THL-EMP-00012',
+    employeeCode: 'THL-EMP-00012',
+    name: 'Farhana Yasmin',
+    email: 'hr@tayeebahousing.com',
+    role: 'HR',
+    roles: ['HR MANAGER'],
+    status: 'ACTIVE',
+    mustChangePassword: false,
+    designationTitle: 'Human Resources Manager',
+    department: 'Human Resources',
+    allowedModules: ['dashboard', 'hr', 'organogram', 'reports'],
+    permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true }
+  }
+];
+
+export const mockRolesList: UserRoleDefinition[] = [
+  {
+    id: 'ROLE-01',
+    roleName: 'SUPER ADMIN',
+    description: 'Full System Administration & Granular Permissions',
+    isSystem: true,
+    isActive: true,
+    menuPermissions: {
+      '*': { view: true, create: true, edit: true, delete: true, approve: true, export: true, print: true }
+    }
+  },
+  {
+    id: 'ROLE-02',
+    roleName: 'CEO / DIRECTOR',
+    description: 'Executive Overview, Approvals & Strategic Reports',
+    isSystem: true,
+    isActive: true,
+    menuPermissions: {
+      '*': { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true }
+    }
+  },
+  {
+    id: 'ROLE-03',
+    roleName: 'ACCOUNTS MANAGER',
+    description: 'Double-Entry Accounting, Vouchers, Expenses & Financial Statements',
+    isSystem: true,
+    isActive: true,
+    menuPermissions: {
+      'accounting': { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true },
+      'expenses': { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true },
+      'collections': { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true },
+      'reports': { view: true, create: false, edit: false, delete: false, approve: false, export: true, print: true }
+    }
+  },
+  {
+    id: 'ROLE-04',
+    roleName: 'SALES MANAGER',
+    description: 'CRM Leads, Plot Inventory, Bookings & Commission Approval',
+    isSystem: true,
+    isActive: true,
+    menuPermissions: {
+      'crm': { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true },
+      'bookings': { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true },
+      'inventory': { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true },
+      'sales': { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true }
+    }
+  },
+  {
+    id: 'ROLE-05',
+    roleName: 'SALES EXECUTIVE',
+    description: 'Assigned Leads, Client Follow-up & Booking Submissions',
+    isSystem: true,
+    isActive: true,
+    menuPermissions: {
+      'crm': { view: true, create: true, edit: true, delete: false, approve: false, export: true, print: true },
+      'bookings': { view: true, create: true, edit: false, delete: false, approve: false, export: true, print: true },
+      'inventory': { view: true, create: false, edit: false, delete: false, approve: false, export: true, print: true }
+    }
+  },
+  {
+    id: 'ROLE-06',
+    roleName: 'HR MANAGER',
+    description: 'Employee Organogram, Payroll Sheet & Attendance',
+    isSystem: true,
+    isActive: true,
+    menuPermissions: {
+      'hr': { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true },
+      'organogram': { view: true, create: true, edit: true, delete: false, approve: true, export: true, print: true }
+    }
+  }
+];
+
+export const mockDesignationsList: UserDesignation[] = [
+  { designationId: 'DESIG-01', name: 'Managing Director & CEO', level: 1, division: 'Executive', department: 'Board of Directors', isActive: true },
+  { designationId: 'DESIG-02', name: 'Executive Director', level: 1, division: 'Executive', department: 'Board of Directors', isActive: true },
+  { designationId: 'DESIG-03', name: 'Chief Financial Officer (CFO)', level: 2, division: 'Finance', department: 'Accounts & Finance', isActive: true },
+  { designationId: 'DESIG-04', name: 'Head of Sales & Marketing', level: 2, division: 'Commercial', department: 'Sales & Marketing', isActive: true },
+  { designationId: 'DESIG-05', name: 'Chief Project Engineer', level: 2, division: 'Operations', department: 'Engineering & Development', isActive: true },
+  { designationId: 'DESIG-06', name: 'Senior Accounts Officer', level: 3, division: 'Finance', department: 'Accounts & Finance', isActive: true },
+  { designationId: 'DESIG-07', name: 'Senior Sales Executive', level: 3, division: 'Commercial', department: 'Sales & Marketing', isActive: true },
+  { designationId: 'DESIG-08', name: 'Assistant Engineer (Site)', level: 3, division: 'Operations', department: 'Engineering & Development', isActive: true },
+  { designationId: 'DESIG-09', name: 'HR & Admin Officer', level: 3, division: 'HR & Administration', department: 'Human Resources', isActive: true }
+];
+
+export const mockDesignationHistories: UserDesignationHistory[] = [
+  {
+    id: 'DH-101',
+    userId: 'THL-EMP-00045',
+    employeeCode: 'THL-EMP-00045',
+    designationId: 'DESIG-07',
+    designationTitle: 'Senior Sales Executive',
+    department: 'Sales & Marketing',
+    startDate: '2024-01-01',
+    status: 'ACTIVE',
+    isActive: true,
+    assignedBy: 'THL-EMP-00001',
+    createdDate: '2024-01-01'
+  },
+  {
+    id: 'DH-102',
+    userId: 'THL-EMP-00021',
+    employeeCode: 'THL-EMP-00021',
+    designationId: 'DESIG-03',
+    designationTitle: 'Chief Financial Officer (CFO)',
+    department: 'Accounts & Finance',
+    startDate: '2023-06-01',
+    status: 'ACTIVE',
+    isActive: true,
+    assignedBy: 'THL-EMP-00001',
+    createdDate: '2023-06-01'
+  }
+];
+
+export const mockLoginHistories: UserLoginHistory[] = [
+  {
+    id: 'LH-01',
+    userId: 'THL-EMP-00001',
+    employeeCode: 'THL-EMP-00001',
+    userName: 'Al-Haj Engr. Tayeebur Rahman',
+    loginTime: '2026-08-17 11:30:15',
+    ipAddress: '192.168.1.100',
+    device: 'Executive PC',
+    browser: 'Chrome 128.0 Windows',
+    status: 'SUCCESS'
+  },
+  {
+    id: 'LH-02',
+    userId: 'THL-EMP-00021',
+    employeeCode: 'THL-EMP-00021',
+    userName: 'Mahfuzur Rahman FCA',
+    loginTime: '2026-08-17 10:15:42',
+    ipAddress: '192.168.1.102',
+    device: 'Accounts PC 1',
+    browser: 'Edge 127.0 Windows',
+    status: 'SUCCESS'
+  },
+  {
+    id: 'LH-03',
+    userId: 'THL-EMP-00045',
+    employeeCode: 'THL-EMP-00045',
+    userName: 'Rafiqul Islam',
+    loginTime: '2026-08-17 09:45:10',
+    ipAddress: '192.168.1.105',
+    device: 'Sales Laptop',
+    browser: 'Chrome 128.0 Windows',
+    status: 'SUCCESS'
   }
 ];
 

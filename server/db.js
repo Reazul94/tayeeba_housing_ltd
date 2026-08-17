@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,6 +14,10 @@ const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+export const hashPassword = (password) => {
+  return crypto.createHash('sha256').update(password + 'thl_salt_2026').digest('hex');
+};
+
 // Initialize Database Schema
 export const initDatabase = () => {
   db.exec(`
@@ -22,6 +27,125 @@ export const initDatabase = () => {
       email TEXT UNIQUE NOT NULL,
       role TEXT NOT NULL,
       permissions TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS user_info (
+      id TEXT PRIMARY KEY,
+      user_id TEXT UNIQUE NOT NULL,
+      employee_code TEXT UNIQUE NOT NULL,
+      employee_id TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      mobile TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('INITIAL', 'ACTIVE', 'INACTIVE', 'LOCKED', 'SUSPENDED', 'DISABLED', 'EXPIRED')),
+      is_active INTEGER NOT NULL DEFAULT 1,
+      is_locked INTEGER NOT NULL DEFAULT 0,
+      must_change_password INTEGER NOT NULL DEFAULT 0,
+      roles_json TEXT NOT NULL,
+      designation_id TEXT,
+      designation_title TEXT,
+      department TEXT,
+      division TEXT,
+      allowed_modules_json TEXT NOT NULL,
+      menu_permissions_json TEXT NOT NULL,
+      failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+      locked_at TEXT,
+      activated_at TEXT,
+      last_login_at TEXT,
+      created_at TEXT NOT NULL,
+      created_by TEXT NOT NULL,
+      updated_at TEXT,
+      updated_by TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS user_roles (
+      id TEXT PRIMARY KEY,
+      role_name TEXT UNIQUE NOT NULL,
+      description TEXT NOT NULL,
+      is_system INTEGER NOT NULL DEFAULT 0,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      menu_permissions_json TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS user_menu (
+      menu_id TEXT PRIMARY KEY,
+      menu_name TEXT NOT NULL,
+      module_name TEXT NOT NULL,
+      parent_id TEXT,
+      route TEXT NOT NULL,
+      icon_name TEXT NOT NULL,
+      sort_order INTEGER NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      permission_key TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS user_role_menu (
+      id TEXT PRIMARY KEY,
+      role_id TEXT NOT NULL,
+      menu_id TEXT NOT NULL,
+      can_view INTEGER NOT NULL DEFAULT 1,
+      can_create INTEGER NOT NULL DEFAULT 0,
+      can_edit INTEGER NOT NULL DEFAULT 0,
+      can_delete INTEGER NOT NULL DEFAULT 0,
+      can_approve INTEGER NOT NULL DEFAULT 0,
+      can_export INTEGER NOT NULL DEFAULT 0,
+      can_print INTEGER NOT NULL DEFAULT 0,
+      assigned_by TEXT NOT NULL,
+      assigned_at TEXT NOT NULL,
+      FOREIGN KEY(role_id) REFERENCES user_roles(id),
+      FOREIGN KEY(menu_id) REFERENCES user_menu(menu_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS user_designation (
+      designation_id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      parent_id TEXT,
+      level INTEGER NOT NULL,
+      division TEXT NOT NULL,
+      department TEXT NOT NULL,
+      section TEXT,
+      subsection TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS user_designation_history (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      employee_code TEXT NOT NULL,
+      designation_id TEXT NOT NULL,
+      designation_title TEXT NOT NULL,
+      department TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT,
+      status TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      assigned_by TEXT NOT NULL,
+      created_date TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS user_additional_designation (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      designation_id TEXT NOT NULL,
+      designation_title TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT,
+      status TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS user_login_history (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      employee_code TEXT NOT NULL,
+      user_name TEXT NOT NULL,
+      login_time TEXT NOT NULL,
+      logout_time TEXT,
+      ip_address TEXT NOT NULL,
+      device TEXT NOT NULL,
+      browser TEXT NOT NULL,
+      status TEXT NOT NULL,
+      failure_reason TEXT
     );
 
     CREATE TABLE IF NOT EXISTS projects (
@@ -286,6 +410,59 @@ export const initDatabase = () => {
   const seqCheck = db.prepare(`SELECT current_value FROM system_sequence WHERE key_name = 'receipt_seq'`).get();
   if (!seqCheck) {
     db.prepare(`INSERT INTO system_sequence (key_name, current_value) VALUES ('receipt_seq', 1000)`).run();
+  }
+
+  // Seed default Super Admin user if not exists
+  const adminCheck = db.prepare(`SELECT user_id FROM user_info WHERE user_id = 'THL-EMP-00001'`).get();
+  if (!adminCheck) {
+    const adminHash = hashPassword('Admin@12345');
+    db.prepare(`
+      INSERT INTO user_info (
+        id, user_id, employee_code, employee_id, display_name, email, mobile, password_hash,
+        status, is_active, is_locked, must_change_password, roles_json, designation_title,
+        department, division, allowed_modules_json, menu_permissions_json, created_at, created_by
+      ) VALUES (
+        'USER-001', 'THL-EMP-00001', 'THL-EMP-00001', 'EMP-001', 'Al-Haj Engr. Tayeebur Rahman', 'admin@tayeebahousing.com',
+        '+880 1711-000001', ?, 'ACTIVE', 1, 0, 0,
+        '["SUPER ADMIN"]', 'Managing Director & CEO', 'Executive', 'Management',
+        '["ALL"]', '{"*":{"view":true,"create":true,"edit":true,"delete":true,"approve":true,"export":true,"print":true}}',
+        datetime('now'), 'SYSTEM'
+      )
+    `).run(adminHash);
+
+    // Seed Accounts User
+    const acctHash = hashPassword('Acct@12345');
+    db.prepare(`
+      INSERT INTO user_info (
+        id, user_id, employee_code, employee_id, display_name, email, mobile, password_hash,
+        status, is_active, is_locked, must_change_password, roles_json, designation_title,
+        department, division, allowed_modules_json, menu_permissions_json, created_at, created_by
+      ) VALUES (
+        'USER-002', 'THL-EMP-00021', 'THL-EMP-00021', 'EMP-002', 'Mahmudul Hasan (Accounts)', 'accounts@tayeebahousing.com',
+        '+880 1812-334455', ?, 'ACTIVE', 1, 0, 0,
+        '["ACCOUNTS MANAGER"]', 'Senior Accounts Manager', 'Accounts & Finance', 'Operations',
+        '["accounting","expenses","collections","dues","vendors","reports"]',
+        '{"accounting":{"view":true,"create":true,"edit":true,"delete":false,"approve":true,"export":true,"print":true},"collections":{"view":true,"create":true,"edit":true,"delete":false,"approve":true,"export":true,"print":true}}',
+        datetime('now'), 'THL-EMP-00001'
+      )
+    `).run(acctHash);
+
+    // Seed Sales Executive User
+    const salesHash = hashPassword('Sales@12345');
+    db.prepare(`
+      INSERT INTO user_info (
+        id, user_id, employee_code, employee_id, display_name, email, mobile, password_hash,
+        status, is_active, is_locked, must_change_password, roles_json, designation_title,
+        department, division, allowed_modules_json, menu_permissions_json, created_at, created_by
+      ) VALUES (
+        'USER-003', 'THL-EMP-00045', 'THL-EMP-00045', 'EMP-003', 'Rashidul Islam (Sales)', 'sales@tayeebahousing.com',
+        '+880 1913-998877', ?, 'ACTIVE', 1, 0, 0,
+        '["SALES EXECUTIVE"]', 'Senior Sales Executive', 'Sales & Marketing', 'Operations',
+        '["dashboard","projects","inventory","crm","bookings","installments","collections","dues","sales"]',
+        '{"crm":{"view":true,"create":true,"edit":true,"delete":false,"approve":false,"export":true,"print":true},"bookings":{"view":true,"create":true,"edit":false,"delete":false,"approve":false,"export":true,"print":true}}',
+        datetime('now'), 'THL-EMP-00001'
+      )
+    `).run(salesHash);
   }
 };
 
