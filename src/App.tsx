@@ -6,6 +6,7 @@ import { Login } from './components/auth/Login';
 import { FirstLogin } from './components/auth/FirstLogin';
 import { AccessDenied } from './components/common/AccessDenied';
 import { SessionTimeoutWarning } from './components/common/SessionTimeoutWarning';
+import { ConfirmDialogModal, ToastContainer } from './components/common/ModernDialogs';
 
 import { CEODashboard } from './components/dashboard/CEODashboard';
 import { ProjectManager } from './components/projects/ProjectManager';
@@ -37,12 +38,24 @@ const ERPContent: React.FC = () => {
 
   // 1. Unauthenticated -> Show Enterprise Login Screen
   if (!isAuthenticated) {
-    return <Login />;
+    return (
+      <>
+        <Login />
+        <ConfirmDialogModal />
+        <ToastContainer />
+      </>
+    );
   }
 
   // 2. Mandatory First-Login Password Change -> Show FirstLogin Wizard
   if (mustChangePassword) {
-    return <FirstLogin />;
+    return (
+      <>
+        <FirstLogin />
+        <ConfirmDialogModal />
+        <ToastContainer />
+      </>
+    );
   }
 
   // 3. Permission Route Guard Evaluation
@@ -115,6 +128,8 @@ const ERPContent: React.FC = () => {
         </main>
       </div>
       <SessionTimeoutWarning />
+      <ConfirmDialogModal />
+      <ToastContainer />
     </div>
   );
 };

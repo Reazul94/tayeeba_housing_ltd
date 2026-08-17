@@ -3,7 +3,7 @@ import { useERP } from '../../context/ERPContext';
 import { FolderLock, FileText, Download, Upload } from 'lucide-react';
 
 export const DocumentManager: React.FC = () => {
-  const { customers, language } = useERP();
+  const { customers, language, showToast } = useERP();
   const isBn = language === 'bn';
 
   return (
@@ -19,7 +19,7 @@ export const DocumentManager: React.FC = () => {
           </p>
         </div>
 
-        <button onClick={() => alert("Document Uploader Opened")} className="bg-tayeeba-600 hover:bg-tayeeba-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow flex items-center space-x-1">
+        <button onClick={() => showToast("Document upload modal ready. Choose NID/Deed file.", "info", "Document Vault")} className="bg-tayeeba-600 hover:bg-tayeeba-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow flex items-center space-x-1">
           <Upload className="w-4 h-4" />
           <span>+ Upload Document</span>
         </button>
@@ -47,7 +47,7 @@ export const DocumentManager: React.FC = () => {
                 <td className="p-3 uppercase font-mono text-[10px] text-tayeeba-400 font-bold">{doc.fileType}</td>
                 <td className="p-3 text-slate-400">{doc.uploadDate}</td>
                 <td className="p-3 text-right">
-                  <button onClick={() => alert(`Downloading ${doc.title}...`)} className="bg-slate-700 hover:bg-slate-600 text-tayeeba-300 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 ml-auto">
+                  <button onClick={() => showToast(`Downloading ${doc.title}...`, 'info', 'File Download')} className="bg-slate-700 hover:bg-slate-600 text-tayeeba-300 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center space-x-1 ml-auto">
                     <Download className="w-3.5 h-3.5" />
                     <span>Download</span>
                   </button>

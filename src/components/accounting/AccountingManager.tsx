@@ -9,7 +9,7 @@ import {
 export const AccountingManager: React.FC = () => {
   const { 
     accounts, journalEntries, addJournalEntry, 
-    language, currentUser 
+    language, currentUser, showToast 
   } = useERP();
 
   const isBn = language === 'bn';
@@ -36,7 +36,7 @@ export const AccountingManager: React.FC = () => {
   const handlePostJV = (e: React.FormEvent) => {
     e.preventDefault();
     if (!jvDesc || jvAmount <= 0) {
-      alert("Please provide description and amount > 0");
+      showToast("Please provide description and amount > 0", 'warning', 'Validation Error');
       return;
     }
 
@@ -57,7 +57,7 @@ export const AccountingManager: React.FC = () => {
       status: 'Approved'
     });
 
-    alert("Journal Voucher posted successfully!");
+    showToast("Journal Voucher posted successfully into double-entry ledger!", 'success', 'Voucher Posted');
     setJvDesc('');
     setJvRef('');
   };

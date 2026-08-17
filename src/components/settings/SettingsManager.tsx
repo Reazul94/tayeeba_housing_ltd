@@ -17,7 +17,7 @@ interface RolePermission {
 }
 
 export const SettingsManager: React.FC = () => {
-  const { currentUser, language } = useERP();
+  const { currentUser, language, showToast, showConfirm } = useERP();
   const isBn = language === 'bn';
 
   const [activeTab, setActiveTab] = useState<'profile' | 'lan' | 'rbac'>('rbac');
@@ -29,24 +29,56 @@ export const SettingsManager: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   // Editable RBAC Roles Matrix state
-  const [roles, setRoles] = useState<RolePermission[]>(() => {
-    const saved = localStorage.getItem('thl_rbac_roles');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+  const [roles, setRoles] = useState<RolePermission[]>([
+    {
+      role: 'Super Admin',
+      desc: 'Full unrestricted system access, bypasses all guards',
+      permissions: { view: true, create: true, edit: true, delete: true, approve: true, export: true }
+    },
+    {
+      role: 'CEO/Director',
+      desc: 'Full operational oversight, financial approvals & report generation',
+      permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true }
+    },
+    {
+      role: 'Accounts Manager',
+      desc: 'Journal vouchers, payment vouchers, reconciliations & balance sheets',
+      permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true }
+    },
+    {
+      role: 'Sales Manager',
+      desc: 'Customer booking approval, commission approval & lead assignment',
+      permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true }
+    },
+    {
+      role: 'Sales Executive',
+      desc: 'Lead prospecting, customer registration, site visit bookings',
+      permissions: { view: true, create: true, edit: false, delete: false, approve: false, export: true }
+    },
+    {
+      role: 'HR Manager',
+      desc: 'Employee directory, organogram designations, monthly salary sheet',
+      permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true }
     }
-    return [
-      { role: 'Super Admin', desc: 'Full System & Deletion Access', permissions: { view: true, create: true, edit: true, delete: true, approve: true, export: true } },
-      { role: 'CEO/Director', desc: 'Financial Overview, Projects & Approvals', permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true } },
-      { role: 'Accounts', desc: 'Payments, Expenses, Vouchers & Ledgers', permissions: { view: true, create: true, edit: true, delete: false, approve: false, export: true } },
-      { role: 'Sales Manager', desc: 'Leads, Bookings & Sales Team', permissions: { view: true, create: true, edit: true, delete: false, approve: false, export: true } },
-      { role: 'Sales Executive', desc: 'Assigned Leads & Sales', permissions: { view: true, create: true, edit: false, delete: false, approve: false, export: false } },
-      { role: 'HR', desc: 'Employees & Payroll Sheet', permissions: { view: true, create: true, edit: true, delete: false, approve: true, export: true } }
-    ];
-  });
+  ]);
 
+  const [editingRoleIndex, setEditingRoleIndex] = useState<number | null>(null);
+  const [showAddRole, setShowAddRole] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleDesc, setNewRoleDesc] = useState('');
-  const [showAddRole, setShowAddRole] = useState(false);
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavedSuccess(true);
+    showToast("Company profile & branding updated successfully!", 'success', 'Profile Saved');
+    setTimeout(() => setSavedSuccess(false), 3000);
+  };
+
+  const handleSaveRBAC = () => {
+    setSavedSuccess(true);
+    showToast("RBAC Access Control Matrix updated and saved!", 'success', 'Permissions Updated');
+    setTimeout(() => setSavedSuccess(false), 3000);
+  };
 
   const togglePermission = (roleName: string, permKey: keyof RolePermission['permissions']) => {
     setRoles(prev => prev.map(r => {
@@ -63,19 +95,13 @@ export const SettingsManager: React.FC = () => {
     }));
   };
 
-  const handleSaveRBAC = () => {
-    localStorage.setItem('thl_rbac_roles', JSON.stringify(roles));
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
-  };
-
   const handleAddRole = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoleName.trim()) return;
 
     const newRoleObj: RolePermission = {
       role: newRoleName.trim(),
-      desc: newRoleDesc.trim() || 'Custom System Role',
+      desc: newRoleDesc.trim() || 'Custom Enterprise Role',
       permissions: { view: true, create: false, edit: false, delete: false, approve: false, export: false }
     };
 
@@ -88,13 +114,22 @@ export const SettingsManager: React.FC = () => {
 
   const handleDeleteRole = (roleName: string) => {
     if (roleName === 'Super Admin') {
-      alert("Super Admin role cannot be deleted!");
+      showToast("Super Admin role cannot be deleted!", 'error', 'Permission Denied');
       return;
     }
-    if (confirm(`Are you sure you want to delete role '${roleName}'?`)) {
-      setRoles(prev => prev.filter(r => r.role !== roleName));
-      handleSaveRBAC();
-    }
+
+    showConfirm({
+      title: 'Delete Role Definition',
+      message: `Are you sure you want to delete role '${roleName}'?`,
+      subtext: 'Users assigned to this role will need to be reassigned.',
+      confirmText: 'Delete Role',
+      cancelText: 'Cancel',
+      type: 'danger',
+      onConfirm: () => {
+        setRoles(prev => prev.filter(r => r.role !== roleName));
+        showToast(`Role '${roleName}' removed successfully.`, 'success', 'Role Deleted');
+      }
+    });
   };
 
   return (

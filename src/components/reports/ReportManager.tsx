@@ -4,7 +4,7 @@ import { formatBDT } from '../../utils/pdfGenerator';
 import { BarChart3, FileText, Download, Printer } from 'lucide-react';
 
 export const ReportManager: React.FC = () => {
-  const { receipts, bookings, customers, expenses, projects, language } = useERP();
+  const { receipts, bookings, customers, expenses, projects, language, showToast } = useERP();
   const isBn = language === 'bn';
 
   const reportModules = [
@@ -21,10 +21,10 @@ export const ReportManager: React.FC = () => {
         <div>
           <h1 className="text-xl font-extrabold text-white flex items-center space-x-2">
             <BarChart3 className="w-5 h-5 text-tayeeba-400" />
-            <span>{isBn ? "রিপোর্টস ও এনালাইটিক্স সেন্টার" : "Reports & Executive Analytics Center"}</span>
+            <span>{isBn ? "এক্সিকিউটিভ রিপোর্টস ও এনালাইটিক্স" : "Executive Reports & Analytics"}</span>
           </h1>
           <p className="text-xs text-slate-400">
-            {isBn ? "সকল ক্যাটাগরির প্রতিবেদন এক্সপোর্ট, ফিল্টার ও প্রিন্ট ফরম্যাট" : "Generate, filter & export high-resolution executive reports & financial statements."}
+            {isBn ? "কালেকশন, ইনভেন্টরি, সেলস ও পিএন্ডএল রিপোর্ট এক্সপোর্ট" : "Generate, preview and download authoritative executive PDF reports."}
           </p>
         </div>
       </div>
@@ -42,7 +42,7 @@ export const ReportManager: React.FC = () => {
 
             <div className="flex space-x-2 pt-3 border-t border-slate-700/60">
               <button
-                onClick={() => alert(`Generating ${rep.title} PDF...`)}
+                onClick={() => showToast(`Generating authoritative ${rep.title} PDF export...`, 'info', 'Generating Report')}
                 className="flex-1 bg-tayeeba-600 hover:bg-tayeeba-500 text-white font-bold py-2 rounded-xl transition flex items-center justify-center space-x-1"
               >
                 <Download className="w-3.5 h-3.5" />

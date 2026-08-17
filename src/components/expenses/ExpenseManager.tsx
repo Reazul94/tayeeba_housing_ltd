@@ -5,7 +5,7 @@ import { formatBDT } from '../../utils/pdfGenerator';
 import { Receipt, Plus } from 'lucide-react';
 
 export const ExpenseManager: React.FC = () => {
-  const { expenses, projects, addExpense, language } = useERP();
+  const { expenses, projects, addExpense, language, showToast } = useERP();
   const isBn = language === 'bn';
 
   const [showModal, setShowModal] = useState(false);
@@ -30,7 +30,7 @@ export const ExpenseManager: React.FC = () => {
       approvedBy: 'Tariqul Islam Siddiqui',
       createdBy: 'Mahfuzur Rahman'
     });
-    alert("Expense recorded successfully!");
+    showToast(`Expense of BDT ${amount.toLocaleString()} for ${category} recorded successfully!`, 'success', 'Expense Added');
     setShowModal(false);
     setDesc('');
   };

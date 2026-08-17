@@ -5,7 +5,7 @@ import { formatBDT } from '../../utils/pdfGenerator';
 import { AlertCircle, MessageSquare, Send, Phone, CheckCircle2, Clock } from 'lucide-react';
 
 export const DueManager: React.FC = () => {
-  const { customers, language } = useERP();
+  const { customers, language, showToast } = useERP();
   const isBn = language === 'bn';
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -16,7 +16,11 @@ export const DueManager: React.FC = () => {
 
   const handleSendReminder = (channel: 'WhatsApp' | 'SMS') => {
     if (!selectedCustomer) return;
-    alert(`${channel} Payment Reminder sent to ${selectedCustomer.name} (${selectedCustomer.mobile})!\n\nDue Amount: BDT ${selectedCustomer.totalDue.toLocaleString()}`);
+    showToast(
+      `${channel} Payment Reminder sent to ${selectedCustomer.name} (${selectedCustomer.mobile || (selectedCustomer as any).phone}) for BDT ${selectedCustomer.totalDue.toLocaleString()}!`,
+      'success',
+      'Reminder Dispatched'
+    );
     setShowReminderModal(false);
   };
 

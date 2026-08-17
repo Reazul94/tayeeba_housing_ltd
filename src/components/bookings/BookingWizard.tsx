@@ -10,7 +10,8 @@ import {
 export const BookingWizard: React.FC = () => {
   const { 
     plots, projects, customers, bookings, 
-    createBooking, addCustomer, language 
+    createBooking, addCustomer, language,
+    showToast, showConfirm 
   } = useERP();
 
   const isBn = language === 'bn';
@@ -41,18 +42,18 @@ export const BookingWizard: React.FC = () => {
   const activePlot = plots.find(p => p.id === selectedPlotId);
   const activeCustomer = customers.find(c => c.id === selectedCustomerId);
 
+  // Dynamic Price Calculations
   const basePrice = activePlot ? activePlot.basePrice : 0;
   const finalPrice = Math.max(0, basePrice - discount);
-  const remainingInstallmentBalance = Math.max(0, finalPrice - (bookingMoney + downPayment));
-  
-  const numInstallments = frequency === 'Monthly' ? durationMonths : Math.ceil(durationMonths / 3);
+  const remainingInstallmentBalance = Math.max(0, finalPrice - bookingMoney - downPayment);
+  const numInstallments = frequency === 'Monthly' ? durationMonths : Math.floor(durationMonths / 3);
   const perInstallmentAmount = numInstallments > 0 ? Math.round(remainingInstallmentBalance / numInstallments) : 0;
 
   // Handle Submit Booking
   const handleConfirmBooking = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPlotId || !selectedCustomerId || !selectedProjectId) {
-      alert("Please select project, plot, and customer.");
+      showToast("Please select project, plot, and customer.", "warning", "Incomplete Booking");
       return;
     }
 
@@ -72,7 +73,7 @@ export const BookingWizard: React.FC = () => {
         salesExecutiveName: 'Rafiqul Islam'
       });
 
-      alert(`Booking ${createdBooking.bookingNumber} created successfully! Plot status updated to BOOKED.`);
+      showToast(`Booking ${createdBooking.bookingNumber} created successfully! Plot status updated to BOOKED.`, 'success', 'Booking Confirmed');
       
       // Auto trigger PDF download
       if (activeCustomer && activePlot) {
@@ -82,7 +83,7 @@ export const BookingWizard: React.FC = () => {
       setActiveTab('list');
       setSelectedPlotId('');
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message, 'error', 'Booking Error');
     }
   };
 
@@ -90,7 +91,7 @@ export const BookingWizard: React.FC = () => {
   const handleSaveInlineCustomer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustName || !newCustMobile || !newCustNid) {
-      alert("Name, Mobile & NID are required.");
+      showToast("Name, Mobile & NID are required.", 'warning', 'Validation Error');
       return;
     }
 
@@ -102,10 +103,10 @@ export const BookingWizard: React.FC = () => {
       mobile: newCustMobile,
       email: `${newCustName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
       presentAddress: 'Dhaka, Bangladesh',
-      permanentAddress: 'Bangladesh',
+      permanentAddress: 'Dhaka, Bangladesh',
       profession: 'Business / Private Service',
-      nomineeName: newCustNominee || 'N/A',
-      nomineeRelation: 'Spouse/Family',
+      nomineeName: newCustNominee || 'Nominee',
+      nomineeRelation: 'Spouse',
       nomineeNid: newCustNomineeNid || 'N/A',
       salesExecutiveId: 'USR-05',
       salesExecutiveName: 'Rafiqul Islam',
@@ -116,6 +117,7 @@ export const BookingWizard: React.FC = () => {
 
     setSelectedCustomerId(createdCust.id);
     setShowAddCustomerModal(false);
+    showToast(`Customer ${createdCust.name} (${createdCust.customerId || createdCust.id}) created & selected!`, 'success', 'Customer Added');
   };
 
   return (

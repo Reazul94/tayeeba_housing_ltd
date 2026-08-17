@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 
 export const ServerMonitor: React.FC = () => {
-  const { language } = useERP();
+  const { language, showToast } = useERP();
   const isBn = language === 'bn';
 
   const [lanServerHost, setLanServerHost] = useState<string>(
@@ -42,7 +42,7 @@ export const ServerMonitor: React.FC = () => {
   const handleSaveHost = () => {
     localStorage.setItem('thl_lan_server_host', lanServerHost);
     fetchServerStatus();
-    alert(`LAN Server Endpoint updated to: ${lanServerHost}`);
+    showToast(`LAN Server Endpoint updated to: ${lanServerHost}`, 'success', 'Server Configuration');
   };
 
   const handleTriggerBackup = async () => {
@@ -50,11 +50,11 @@ export const ServerMonitor: React.FC = () => {
       const res = await fetch(`${lanServerHost}/api/backups/trigger`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        alert("Automated Database Backup created successfully!");
+        showToast("Automated Database Backup snapshot created successfully!", 'success', 'Backup Created');
         fetchServerStatus();
       }
     } catch (err: any) {
-      alert(`Backup error: ${err.message}`);
+      showToast(`Backup error: ${err.message}`, 'error', 'Backup Failed');
     }
   };
 

@@ -6,7 +6,8 @@ import { RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
 export const TransferManager: React.FC = () => {
   const { 
     bookings, customers, plots, 
-    cancelBooking, transferPlot, language 
+    cancelBooking, transferPlot, language,
+    showConfirm, showToast 
   } = useERP();
 
   const isBn = language === 'bn';
@@ -25,17 +26,37 @@ export const TransferManager: React.FC = () => {
     e.preventDefault();
     if (!selectedBookingId) return;
 
-    cancelBooking(selectedBookingId, cancellationFee, cancelReason);
-    alert("Booking cancelled! Plot reset to AVAILABLE (Green). Refund voucher generated.");
-    setSelectedBookingId('');
+    showConfirm({
+      title: 'Confirm Booking Cancellation',
+      message: `Are you sure you want to cancel booking ${selectedBookingId}?`,
+      subtext: `A cancellation charge of BDT ${cancellationFee.toLocaleString()} will be deducted, and the plot will be restored to Available status.`,
+      confirmText: 'Cancel Booking & Refund',
+      cancelText: 'Keep Booking',
+      type: 'danger',
+      onConfirm: () => {
+        cancelBooking(selectedBookingId, cancellationFee, cancelReason);
+        showToast("Booking cancelled successfully! Plot status reset to AVAILABLE.", 'success', 'Cancellation Processed');
+        setSelectedBookingId('');
+      }
+    });
   };
 
   const handleProcessTransfer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!transferPlotId || !fromCustId || !toCustId) return;
 
-    transferPlot(transferPlotId, fromCustId, toCustId, transferFee);
-    alert("Plot Ownership Transferred successfully!");
+    showConfirm({
+      title: 'Confirm Plot Ownership Transfer',
+      message: `Transfer ownership of plot ${transferPlotId} from customer ${fromCustId} to ${toCustId}?`,
+      subtext: `Transfer fee of BDT ${transferFee.toLocaleString()} will be charged.`,
+      confirmText: 'Execute Transfer',
+      cancelText: 'Cancel',
+      type: 'warning',
+      onConfirm: () => {
+        transferPlot(transferPlotId, fromCustId, toCustId, transferFee);
+        showToast("Plot Ownership transferred successfully with updated deed records!", 'success', 'Ownership Transferred');
+      }
+    });
   };
 
   return (

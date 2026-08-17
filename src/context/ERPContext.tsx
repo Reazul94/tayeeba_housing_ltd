@@ -111,6 +111,34 @@ interface ERPContextType {
   processPayroll: (month: string, year: number) => void;
   markNotificationRead: (id: string) => void;
   logAuditAction: (action: string, module: string, recordId: string, oldValue?: string, newValue?: string) => void;
+
+  // Modern Dialogs & Toast Notifications
+  toasts: Array<{ id: string; title?: string; message: string; type: 'success' | 'error' | 'warning' | 'info'; durationMs?: number }>;
+  confirmDialog: {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    subtext?: string;
+    confirmText?: string;
+    cancelText?: string;
+    type?: 'warning' | 'danger' | 'info' | 'success';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  } | null;
+  showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info', title?: string, durationMs?: number) => void;
+  removeToast: (id: string) => void;
+  showConfirm: (config: {
+    title: string;
+    message: string;
+    subtext?: string;
+    confirmText?: string;
+    cancelText?: string;
+    type?: 'warning' | 'danger' | 'info' | 'success';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }) => void;
+  showAlert: (title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
+  closeConfirmDialog: () => void;
 }
 
 const ERPContext = createContext<ERPContextType | undefined>(undefined);
@@ -311,6 +339,68 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return saved ? JSON.parse(saved) : mockNotifications;
     } catch (e) { return mockNotifications; }
   });
+
+  // -------------------------------------------------------------
+  // MODERN DIALOG & TOAST STATE
+  // -------------------------------------------------------------
+  const [toasts, setToasts] = useState<Array<{ id: string; title?: string; message: string; type: 'success' | 'error' | 'warning' | 'info'; durationMs?: number }>>([]);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    subtext?: string;
+    confirmText?: string;
+    cancelText?: string;
+    type?: 'warning' | 'danger' | 'info' | 'success';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string, durationMs: number = 4000) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+    const newToast = { id, title, message, type, durationMs };
+    setToasts(prev => [...prev, newToast]);
+
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, durationMs);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  const showConfirm = (config: {
+    title: string;
+    message: string;
+    subtext?: string;
+    confirmText?: string;
+    cancelText?: string;
+    type?: 'warning' | 'danger' | 'info' | 'success';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }) => {
+    setConfirmDialog({
+      isOpen: true,
+      ...config
+    });
+  };
+
+  const showAlert = (title: string, message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      confirmText: 'OK',
+      cancelText: undefined,
+      type: type === 'error' ? 'danger' : type,
+      onConfirm: () => {}
+    });
+  };
+
+  const closeConfirmDialog = () => {
+    setConfirmDialog(null);
+  };
 
   // Sync to localStorage
   useEffect(() => {
@@ -1234,7 +1324,14 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addEmployee,
       processPayroll,
       markNotificationRead,
-      logAuditAction
+      logAuditAction,
+      toasts,
+      confirmDialog,
+      showToast,
+      removeToast,
+      showConfirm,
+      showAlert,
+      closeConfirmDialog
     }}>
       {children}
     </ERPContext.Provider>

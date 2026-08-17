@@ -5,18 +5,15 @@ import { formatBDT, generateMoneyReceiptPDF } from '../../utils/pdfGenerator';
 import { CreditCard, Plus, Download, Printer, Search, CheckCircle } from 'lucide-react';
 
 export const CollectionManager: React.FC = () => {
-  const { 
-    receipts, customers, plots, projects, 
-    recordPayment, language 
-  } = useERP();
+  const { customers, projects, receipts, recordPayment, language, showToast } = useERP();
 
   const isBn = language === 'bn';
 
   const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
-  const [paymentType, setPaymentType] = useState<PaymentReceipt['paymentType']>('Installment');
-  const [paymentAmount, setPaymentAmount] = useState<number>(125000);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentReceipt['paymentMethod']>('Bank Transfer');
+  const [paymentType, setPaymentType] = useState<'Booking Money' | 'Down Payment' | 'Installment' | 'Registration Fee' | 'Other'>('Installment');
+  const [paymentAmount, setPaymentAmount] = useState<number>(50000);
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Bank Transfer' | 'Cheque' | 'bKash'>('Bank Transfer');
   const [bankName, setBankName] = useState('Dutch-Bangla Bank Ltd.');
   const [chequeOrTxnNo, setChequeOrTxnNo] = useState('');
 
@@ -25,12 +22,12 @@ export const CollectionManager: React.FC = () => {
   const handleRecordPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomerId || paymentAmount <= 0) {
-      alert("Select customer and enter valid payment amount.");
+      showToast("Select customer and enter valid payment amount.", "warning", "Validation Error");
       return;
     }
 
     if (!activeCustomer || !activeCustomer.linkedPlotId) {
-      alert("Selected customer does not have a linked plot.");
+      showToast("Selected customer does not have a linked plot.", "warning", "Missing Linked Plot");
       return;
     }
 
@@ -46,7 +43,7 @@ export const CollectionManager: React.FC = () => {
       remarks: `${paymentType} payment received.`
     });
 
-    alert(`Receipt ${createdReceipt.receiptNumber} generated successfully!`);
+    showToast(`Receipt ${createdReceipt.receiptNumber} generated successfully!`, 'success', 'Payment Recorded');
     generateMoneyReceiptPDF(createdReceipt);
     setShowAddPaymentModal(false);
   };

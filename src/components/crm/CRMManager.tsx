@@ -10,7 +10,7 @@ import {
 export const CRMManager: React.FC = () => {
   const { 
     leads, siteVisits, customers, receipts, projects, 
-    addLead, addSiteVisit, language 
+    addLead, addSiteVisit, language, showToast 
   } = useERP();
 
   const isBn = language === 'bn';
@@ -57,7 +57,7 @@ export const CRMManager: React.FC = () => {
       followUpDate: new Date().toISOString().split('T')[0],
       notes: 'New inquiry registered'
     });
-    alert("New Lead registered successfully!");
+    showToast("New Lead registered successfully!", 'success', 'Lead Created');
     setShowAddLeadModal(false);
     setLeadName('');
     setLeadPhone('');
@@ -80,7 +80,7 @@ export const CRMManager: React.FC = () => {
       followUpDate: visitDate,
       status: 'Scheduled'
     });
-    alert("Site Visit scheduled successfully!");
+    showToast("Site Visit scheduled successfully!", 'success', 'Visit Scheduled');
     setShowAddVisitModal(false);
     setVisitClientName('');
   };

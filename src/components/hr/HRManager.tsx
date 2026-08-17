@@ -7,7 +7,7 @@ import { UserCheck, Plus, Download, Printer, DollarSign, Calendar } from 'lucide
 export const HRManager: React.FC = () => {
   const { 
     employees, payrolls, processPayroll, addEmployee, 
-    language 
+    language, showToast 
   } = useERP();
 
   const isBn = language === 'bn';
@@ -33,7 +33,7 @@ export const HRManager: React.FC = () => {
       email: `${empName.toLowerCase().replace(/\s+/g, '')}@tayeebahousing.com`,
       status: 'Active'
     });
-    alert("New Employee created successfully!");
+    showToast(`Employee ${empName} added successfully!`, 'success', 'Employee Created');
     setShowAddEmpModal(false);
   };
 

@@ -10,7 +10,8 @@ import {
 export const UserManager: React.FC = () => {
   const { 
     usersList, employees, rolesList, designationsList, createUser, 
-    updateUser, updateUserStatus, resetUserPassword, currentUser, language 
+    updateUser, updateUserStatus, resetUserPassword, currentUser, language,
+    showToast, showConfirm, showAlert
   } = useERP();
 
   const isBn = language === 'bn';
@@ -70,7 +71,7 @@ export const UserManager: React.FC = () => {
     e.preventDefault();
     if (!editingUser) return;
     if (!editName.trim()) {
-      alert('Please enter a valid Name.');
+      showToast('Please enter a valid Name.', 'error', 'Validation Error');
       return;
     }
 
@@ -88,10 +89,9 @@ export const UserManager: React.FC = () => {
 
     if (res.success) {
       setEditingUser(null);
-      setSuccessBanner(`User profile for ${editName} (${editingUser.userId || editingUser.employeeCode}) updated successfully!`);
-      setTimeout(() => setSuccessBanner(null), 4000);
+      showToast(`User profile for ${editName} (${editingUser.userId || editingUser.employeeCode}) updated successfully!`, 'success', 'Profile Updated');
     } else {
-      alert(res.error || 'Failed to update user profile.');
+      showToast(res.error || 'Failed to update user profile.', 'error', 'Update Failed');
     }
   };
 
@@ -161,10 +161,9 @@ export const UserManager: React.FC = () => {
     if (res.success) {
       setShowCreateModal(false);
       setWizardStep(1);
-      setSuccessBanner(`User account for ${formDisplayName} (${formEmployeeCode}) provisioned successfully in INITIAL status!`);
-      setTimeout(() => setSuccessBanner(null), 5000);
+      showToast(`User account for ${formDisplayName} (${formEmployeeCode}) provisioned successfully!`, 'success', 'User Created');
     } else {
-      alert(res.error || 'Failed to create user account.');
+      showToast(res.error || 'Failed to create user account.', 'error', 'Provisioning Failed');
     }
   };
 
@@ -365,10 +364,22 @@ export const UserManager: React.FC = () => {
 
                             <button
                               onClick={() => {
-                                if (confirm(`Reset password for ${user.name}? This will set a temporary password and status to INITIAL.`)) {
-                                  resetUserPassword(user.id);
-                                  alert(`Password for ${user.name} reset to temporary password 'User@12345'. First login will require change.`);
-                                }
+                                showConfirm({
+                                  title: 'Reset User Password',
+                                  message: `Are you sure you want to reset the password for ${user.name} (${user.userId || user.employeeCode})?`,
+                                  subtext: 'This will set a temporary password "User@12345" and set the account to INITIAL status.',
+                                  confirmText: 'Reset Password',
+                                  cancelText: 'Cancel',
+                                  type: 'warning',
+                                  onConfirm: () => {
+                                    resetUserPassword(user.id);
+                                    showToast(
+                                      `Password for ${user.name} was reset to temporary password 'User@12345'. First login will require a password change.`,
+                                      'success',
+                                      'Password Reset'
+                                    );
+                                  }
+                                });
                               }}
                               title="Reset Password"
                               className="p-1.5 bg-slate-800 hover:bg-amber-500/20 text-slate-400 hover:text-amber-300 rounded-lg transition border border-slate-700"
