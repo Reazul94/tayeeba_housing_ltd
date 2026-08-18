@@ -5,7 +5,6 @@
 // Run: node scripts/migrate-sqlite-to-pg.js
 // ============================================================
 
-import Database from 'better-sqlite3';
 import pkg from 'pg';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -38,6 +37,7 @@ async function runMigration() {
     process.exit(1);
   }
 
+  const { default: Database } = await import('better-sqlite3');
   const sqliteDb = new Database(sqlitePath, { readonly: true });
   const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
