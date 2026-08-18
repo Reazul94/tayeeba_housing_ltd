@@ -10,7 +10,8 @@
     "create-admin": "node ../scripts/create-admin.js",
     "setup-storage": "node ../scripts/setup-storage.js",
     "migrate-db": "node ../scripts/migrate-sqlite-to-pg.js",
-    "reset-data": "node ../scripts/reset-database.js"
+    "reset-data": "node ../scripts/reset-database.js",
+    "migrate": "node ../scripts/run-all-migrations.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
