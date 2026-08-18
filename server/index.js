@@ -117,6 +117,73 @@ app.get('/api/health/info', (req, res) => {
 });
 
 // ============================================================
+// Serve Frontend Static Files (Unified Monorepo / Railway Support)
+// ============================================================
+const distPathCandidates = [
+  path.join(__dirname, '../dist'),
+  path.join(__dirname, 'dist'),
+  path.join(process.cwd(), 'dist'),
+];
+
+let activeDistPath = null;
+for (const cand of distPathCandidates) {
+  if (fs.existsSync(cand) && fs.existsSync(path.join(cand, 'index.html'))) {
+    activeDistPath = cand;
+    break;
+  }
+}
+
+if (activeDistPath) {
+  console.log(`\x1b[32m✓\x1b[0m Serving frontend static build from: ${activeDistPath}`);
+  app.use(express.static(activeDistPath));
+  
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(activeDistPath, 'index.html'));
+  });
+} else {
+  // Fallback landing page for root /
+  app.get('/', (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Tayeeba Housing Ltd. ERP — REST API</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b1727; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+          .card { background: #0f2236; border: 1px solid #1e3a5f; border-radius: 20px; padding: 32px; max-width: 540px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+          .badge { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block; }
+          h1 { font-size: 22px; font-weight: 800; margin: 12px 0 6px 0; color: #ffffff; }
+          p { color: #94a3b8; font-size: 13px; line-height: 1.6; margin: 0 0 20px 0; }
+          .btn { display: inline-block; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-size: 13px; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.4); }
+          .btn:hover { background: #10b981; }
+          .endpoints { background: #091524; border: 1px solid #1e293b; border-radius: 12px; padding: 12px; margin-top: 20px; font-size: 12px; font-family: monospace; }
+          .endpoints div { padding: 4px 0; color: #cbd5e1; }
+          .endpoints span { color: #34d399; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <span class="badge">● REST API Online & Active (v2.7.0)</span>
+          <h1>TAYEEBA HOUSING LTD. ERP</h1>
+          <p>The central Express backend gateway is active and connected to Supabase PostgreSQL.</p>
+          <a href="https://reazul94.github.io/tayeeba_housing_ltd/" class="btn" target="_blank">Open ERP Web Application ↗</a>
+          <div class="endpoints">
+            <div><span>GET</span> /api/health → System status</div>
+            <div><span>GET</span> /api/health/database → Supabase connection check</div>
+            <div><span>POST</span> /api/auth/login → Enterprise JWT login</div>
+            <div><span>GET</span> /api/projects → Projects & Plots directory</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  });
+}
+
+// ============================================================
 // 404 Handler
 // ============================================================
 app.use((req, res) => {
