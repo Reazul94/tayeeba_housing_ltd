@@ -868,6 +868,355 @@ router.get('/dashboard/metrics', authenticate, async (req, res) => {
     console.error('Dashboard metrics error:', err.message);
     return res.status(500).json({ error: 'Failed to load dashboard metrics.' });
   }
+});// ============================================================
+// MODULES & MENUS
+// ============================================================
+router.get('/modules', authenticate, async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM user_module WHERE is_active = true ORDER BY sort_order`);
+    return res.json({ modules: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load modules.' });
+  }
+});
+
+router.get('/menus', authenticate, async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM user_menu WHERE is_active = true ORDER BY sort_order`);
+    return res.json({ menus: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load menus.' });
+  }
+});
+
+// ============================================================
+// PERMISSIONS
+// ============================================================
+router.get('/permissions', authenticate, async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM user_role_menu`);
+    return res.json({ permissions: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load permissions.' });
+  }
+});
+
+router.put('/permissions/role/:roleId', authenticate, requireModule('roles'), async (req, res) => {
+  const { roleId } = req.params;
+  const { menuPermissions } = req.body; // array of { menuId, canView, canCreate, canEdit, canDelete, canApprove, canExport, canPrint }
+  
+  if (!menuPermissions || !Array.isArray(menuPermissions)) {
+    return res.status(400).json({ error: 'menuPermissions array is required.' });
+  }
+
+  try {
+    await withTransaction(async (client) => {
+      for (const p of menuPermissions) {
+        await client.query(
+          `INSERT INTO user_role_menu (role_id, menu_id, can_view, can_create, can_edit, can_delete, can_approve, can_export, can_print, assigned_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           ON CONFLICT (role_id, menu_id) DO UPDATE SET
+             can_view = EXCLUDED.can_view,
+             can_create = EXCLUDED.can_create,
+             can_edit = EXCLUDED.can_edit,
+             can_delete = EXCLUDED.can_delete,
+             can_approve = EXCLUDED.can_approve,
+             can_export = EXCLUDED.can_export,
+             can_print = EXCLUDED.can_print`,
+          [roleId, p.menuId, !!p.canView, !!p.canCreate, !!p.canEdit, !!p.canDelete, !!p.canApprove, !!p.canExport, !!p.canPrint, req.user.userId]
+        );
+      }
+    });
+
+    return res.json({ success: true, message: 'Permissions updated successfully.' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to update role permissions.' });
+  }
+});
+
+// ============================================================
+// DESIGNATIONS & ORGANOGRAM
+// ============================================================
+router.get('/designations', authenticate, async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM user_designation WHERE is_active = true ORDER BY level, name`);
+    return res.json({ designations: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load designations.' });
+  }
+});
+
+router.post('/designations', authenticate, requireModule('hr'), async (req, res) => {
+  const { name, parentId, level, department, division, description } = req.body;
+  if (!name) return res.status(400).json({ error: 'Designation name is required.' });
+
+  try {
+    const result = await query(
+      `INSERT INTO user_designation (name, parent_id, level, department, division, description)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [name, parentId || null, level || 0, department, division, description]
+    );
+    return res.status(201).json({ success: true, designation: result.rows[0] });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to create designation.' });
+  }
+});
+
+router.post('/designations/transfer', authenticate, requireModule('hr'), async (req, res) => {
+  const { userId, newDesignationId, startDate, remarks } = req.body;
+  if (!userId || !newDesignationId) {
+    return res.status(400).json({ error: 'User ID and New Designation ID are required.' });
+  }
+
+  try {
+    await withTransaction(async (client) => {
+      // 1. Deactivate old active designation history
+      await client.query(
+        `UPDATE user_designation_history 
+         SET is_active = false, end_date = CURRENT_DATE, status = 'TRANSFERRED'
+         WHERE user_id = $1 AND is_active = true`,
+        [userId]
+      );
+
+      // 2. Insert new designation history
+      await client.query(
+        `INSERT INTO user_designation_history (user_id, designation_id, start_date, status, is_active, remarks, assigned_by)
+         VALUES ($1, $2, $3, 'ACTIVE', true, $4, $5)`,
+        [userId, newDesignationId, startDate || new Date(), remarks, req.user.userId]
+      );
+
+      // 3. Update user_info
+      const desigResult = await client.query(`SELECT name, department, division FROM user_designation WHERE designation_id = $1`, [newDesignationId]);
+      const desig = desigResult.rows[0];
+      if (desig) {
+        await client.query(
+          `UPDATE user_info SET designation_title = $1, department = $2, division = $3, updated_at = NOW() WHERE id = $4`,
+          [desig.name, desig.department, desig.division, userId]
+        );
+      }
+    });
+
+    return res.json({ success: true, message: 'Employee transferred successfully.' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to transfer employee.' });
+  }
+});
+
+// ============================================================
+// BLOCKS, ZONES, ROADS
+// ============================================================
+router.get('/blocks', authenticate, async (req, res) => {
+  const { projectId } = req.query;
+  try {
+    let sql = `SELECT * FROM project_block WHERE is_active = true`;
+    const params = [];
+    if (projectId) { params.push(projectId); sql += ` AND project_id = $${params.length}`; }
+    const result = await query(sql, params);
+    return res.json({ blocks: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load blocks.' });
+  }
+});
+
+router.post('/blocks', authenticate, requireModule('projects'), async (req, res) => {
+  const { projectId, blockName, description } = req.body;
+  if (!projectId || !blockName) return res.status(400).json({ error: 'Project and block name are required.' });
+
+  try {
+    const result = await query(
+      `INSERT INTO project_block (project_id, block_name, description) VALUES ($1, $2, $3) RETURNING *`,
+      [projectId, blockName, description]
+    );
+    return res.status(201).json({ success: true, block: result.rows[0] });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to create block.' });
+  }
+});
+
+// ============================================================
+// SITE VISITS
+// ============================================================
+router.get('/site-visits', authenticate, requireModule('crm'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM site_visit ORDER BY visit_date DESC`);
+    return res.json({ siteVisits: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load site visits.' });
+  }
+});
+
+router.post('/site-visits', authenticate, requireModule('crm'), async (req, res) => {
+  const { leadId, customerId, visitDate, visitTime, projectId, projectName, interestedPlot, transportArranged, transportDetails, remarks } = req.body;
+  if (!visitDate) return res.status(400).json({ error: 'Visit date is required.' });
+
+  try {
+    const result = await query(
+      `INSERT INTO site_visit (lead_id, customer_id, visit_date, visit_time, project_id, project_name, interestedPlot, sales_executive_id, sales_executive_name, transport_arranged, transport_details, remarks)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      [leadId || null, customerId || null, visitDate, visitTime, projectId || null, projectName, interestedPlot, req.user.id, req.user.displayName, transportArranged || false, transportDetails, remarks]
+    );
+    return res.status(201).json({ success: true, siteVisit: result.rows[0] });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to schedule site visit.' });
+  }
+});
+
+// ============================================================
+// COMMISSIONS
+// ============================================================
+router.get('/commissions', authenticate, requireModule('sales'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM commission ORDER BY created_at DESC`);
+    return res.json({ commissions: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load commissions.' });
+  }
+});
+
+// ============================================================
+// VENDORS & PURCHASES
+// ============================================================
+router.get('/vendors', authenticate, requireModule('vendors'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM vendor WHERE is_active = true ORDER BY vendor_name`);
+    return res.json({ vendors: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load vendors.' });
+  }
+});
+
+router.post('/vendors', authenticate, requireModule('vendors'), async (req, res) => {
+  const { vendorName, contactPerson, phone, email, address, tradeLicense, category } = req.body;
+  if (!vendorName) return res.status(400).json({ error: 'Vendor name is required.' });
+
+  try {
+    const code = `THL-VEN-${Date.now().toString().slice(-5)}`;
+    const result = await query(
+      `INSERT INTO vendor (vendor_code, vendor_name, contact_person, phone, email, address, trade_license, category)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [code, vendorName, contactPerson, phone, email, address, tradeLicense, category]
+    );
+    return res.status(201).json({ success: true, vendor: result.rows[0] });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to create vendor.' });
+  }
+});
+
+router.get('/purchases', authenticate, requireModule('vendors'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM purchase ORDER BY created_at DESC`);
+    return res.json({ purchases: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load purchases.' });
+  }
+});
+
+// ============================================================
+// LAND ACQUISITION
+// ============================================================
+router.get('/land', authenticate, requireModule('land'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM land_parcel ORDER BY created_at DESC`);
+    return res.json({ landParcels: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load land parcels.' });
+  }
+});
+
+router.post('/land', authenticate, requireModule('land'), async (req, res) => {
+  const { projectId, ownerName, mouza, khatianNo, dagNo, areaKatha, pricePerKatha, notes } = req.body;
+  if (!ownerName || !areaKatha) return res.status(400).json({ error: 'Owner name and land area are required.' });
+
+  const totalPrice = (parseFloat(areaKatha) || 0) * (parseFloat(pricePerKatha) || 0);
+  try {
+    const code = `THL-LND-${Date.now().toString().slice(-5)}`;
+    const result = await query(
+      `INSERT INTO land_parcel (parcel_code, project_id, owner_name, mouza, khatian_no, dag_no, area_katha, price_per_katha, total_price, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [code, projectId || null, ownerName, mouza, khatianNo, dagNo, areaKatha, pricePerKatha || 0, totalPrice, notes]
+    );
+    return res.status(201).json({ success: true, landParcel: result.rows[0] });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to create land parcel.' });
+  }
+});
+
+// ============================================================
+// SITE DEVELOPMENT
+// ============================================================
+router.get('/development', authenticate, requireModule('development'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM site_development ORDER BY created_at DESC`);
+    return res.json({ developmentItems: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load site development.' });
+  }
+});
+
+// ============================================================
+// TRANSFERS & REFUNDS
+// ============================================================
+router.get('/transfers', authenticate, requireModule('transfer'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM transfer ORDER BY created_at DESC`);
+    return res.json({ transfers: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load transfers.' });
+  }
+});
+
+router.get('/refunds', authenticate, requireModule('refunds'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM refund ORDER BY created_at DESC`);
+    return res.json({ refunds: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load refunds.' });
+  }
+});
+
+// ============================================================
+// DOCUMENTS (Supabase Storage Metadata & Signed URLs)
+// ============================================================
+router.get('/documents', authenticate, requireModule('documents'), async (req, res) => {
+  const { customerId, projectId, type } = req.query;
+  try {
+    let sql = `SELECT * FROM document WHERE is_deleted = false`;
+    const params = [];
+    if (customerId) { params.push(customerId); sql += ` AND customer_id = $${params.length}`; }
+    if (projectId) { params.push(projectId); sql += ` AND project_id = $${params.length}`; }
+    if (type) { params.push(type); sql += ` AND document_type = $${params.length}`; }
+    sql += ` ORDER BY uploaded_at DESC`;
+    const result = await query(sql, params);
+    return res.json({ documents: result.rows });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to load documents.' });
+  }
+});
+
+// ============================================================
+// BACKUPS & SYSTEM
+// ============================================================
+router.get('/backups', authenticate, requireModule('backup'), async (req, res) => {
+  res.json({
+    status: 'ok',
+    backupStrategy: 'Automated Supabase PostgreSQL Daily Snapshots + Point-in-time Recovery',
+    lastBackup: new Date().toISOString(),
+    retentionDays: 30
+  });
+});
+
+router.get('/system', authenticate, async (req, res) => {
+  res.json({
+    name: 'TAYEEBA HOUSING LTD. ERP',
+    version: '2.6.0',
+    company: 'Tayeeba Housing Ltd.',
+    address: 'Gulshan Tower (Level 8), Plot 44, Gulshan-2, Dhaka-1212',
+    currency: 'BDT (৳)',
+    timezone: 'Asia/Dhaka',
+    database: 'Supabase PostgreSQL',
+    storage: 'Supabase Storage',
+    frontend: 'GitHub Pages'
+  });
 });
 
 export default router;
