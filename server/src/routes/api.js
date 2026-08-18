@@ -1248,7 +1248,7 @@ router.get('/backups', authenticate, requireModule('backup'), async (req, res) =
 router.get('/system', authenticate, async (req, res) => {
   res.json({
     name: 'TAYEEBA HOUSING LTD. ERP',
-    version: '2.6.0',
+    version: '2.7.0',
     company: 'Tayeeba Housing Ltd.',
     address: 'Gulshan Tower (Level 8), Plot 44, Gulshan-2, Dhaka-1212',
     currency: 'BDT (৳)',
@@ -1257,6 +1257,42 @@ router.get('/system', authenticate, async (req, res) => {
     storage: 'Supabase Storage',
     frontend: 'GitHub Pages'
   });
+});
+
+router.post('/system/reset-data', authenticate, requireModule('settings'), async (req, res) => {
+  try {
+    await withTransaction(async (client) => {
+      await client.query(`
+        TRUNCATE TABLE 
+          receipt, payment, installment, booking,
+          journal_entry_line, journal_entry,
+          expense, commission, transfer, refund,
+          site_visit, follow_up, lead,
+          customer_nominee, customer,
+          plot, project_road, project_zone, project_block, project,
+          purchase, vendor,
+          land_payment, land_parcel, land_owner,
+          site_development,
+          payroll, leave_request, attendance,
+          document, audit_log
+        CASCADE
+      `);
+
+      await client.query(`ALTER SEQUENCE IF EXISTS receipt_number_seq RESTART WITH 1`);
+      await client.query(`ALTER SEQUENCE IF EXISTS voucher_number_seq RESTART WITH 1`);
+      await client.query(`
+        INSERT INTO system_settings (key, value, description)
+        VALUES ('system_version', '2.7.0', 'Tayeeba Housing Ltd. ERP System Version'),
+               ('data_status', 'CLEAN_SLATE', 'Ready for live data input')
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+      `);
+    });
+
+    return res.json({ success: true, message: 'All operational data reset successfully to clean slate (v2.7.0).' });
+  } catch (err) {
+    console.error('Reset data error:', err.message);
+    return res.status(500).json({ error: 'Failed to reset operational data.' });
+  }
 });
 
 export default router;

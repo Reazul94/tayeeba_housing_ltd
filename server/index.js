@@ -70,7 +70,7 @@ app.use('/api', apiRouter);
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '2.6.0',
+    version: '2.7.0',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
     app: 'TAYEEBA HOUSING LTD. ERP',
@@ -153,7 +153,7 @@ for (const ifaces of Object.values(networkInterfaces)) {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log('\n\x1b[1m\x1b[36m╔══════════════════════════════════════════════╗');
-  console.log('║     TAYEEBA HOUSING LTD. ERP v2.6           ║');
+  console.log('║     TAYEEBA HOUSING LTD. ERP v2.7           ║');
   console.log('╚══════════════════════════════════════════════╝\x1b[0m');
   console.log(`\n\x1b[32m✓\x1b[0m Server started on port \x1b[1m${PORT}\x1b[0m`);
   console.log(`\n\x1b[33mLocal:\x1b[0m     http://localhost:${PORT}/api/health`);

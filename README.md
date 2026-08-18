@@ -1,6 +1,6 @@
-# TAYEEBA HOUSING LTD. — ERP v2.6
+# TAYEEBA HOUSING LTD. — ERP v2.7
 
-> **Enterprise Resource Planning System** for real estate development, sales, land management, accounts, and HR — built with React, Node.js, and Supabase PostgreSQL.
+> **Enterprise Resource Planning System** for real estate development, sales, land management, accounts, and HR — built with React, Node.js, and Supabase PostgreSQL. Clean slate ready for live production data input.
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-blue?logo=github)](https://reazul94.github.io/tayeeba_housing_ltd/)
 [![Node.js](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-green?logo=node.js)](https://nodejs.org)

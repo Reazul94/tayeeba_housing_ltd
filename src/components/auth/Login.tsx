@@ -59,7 +59,7 @@ export const Login: React.FC = () => {
               TAYEEBA HOUSING <span className="text-gold-400">LTD.</span>
             </h1>
             <p className="text-xs text-tayeeba-400 font-bold uppercase tracking-widest mt-0.5">
-              Enterprise ERP & Accounts Platform (v2.5)
+              Enterprise ERP & Accounts Platform (v2.7)
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
               Authorized Corporate Access Only

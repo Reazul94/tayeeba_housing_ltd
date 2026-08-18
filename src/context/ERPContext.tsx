@@ -158,6 +158,9 @@ interface ERPContextType {
   }) => void;
   showAlert: (title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
   closeConfirmDialog: () => void;
+
+  // Clean Slate & Version Upgrade
+  resetAllDataToCleanSlate: () => Promise<void>;
 }
 
 const ERPContext = createContext<ERPContextType | undefined>(undefined);
@@ -1288,6 +1291,53 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
+  const resetAllDataToCleanSlate = async () => {
+    try {
+      await fetch(`${API_BASE}/system/reset-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${_memAccessToken || localStorage.getItem('thl_auth_token') || ''}`
+        }
+      });
+    } catch (e) {
+      console.warn('API reset note:', e);
+    }
+
+    // Reset local transactional state collections
+    setProjects([]);
+    setPlots([]);
+    setCustomers([]);
+    setLeads([]);
+    setSiteVisits([]);
+    setBookings([]);
+    setInstallments([]);
+    setReceipts([]);
+    setExpenses([]);
+    setJournalEntries([]);
+    setLandParcels([]);
+    setCommissions([]);
+    setVendors([]);
+    setPayrolls([]);
+
+    // Clear local storage keys
+    const keys = [
+      'thl_projects', 'thl_plots', 'thl_customers', 'thl_leads',
+      'thl_site_visits', 'thl_bookings', 'thl_installments', 'thl_receipts',
+      'thl_expenses', 'thl_journal_entries', 'thl_land_parcels',
+      'thl_commissions', 'thl_vendors', 'thl_payrolls'
+    ];
+    keys.forEach(k => {
+      try { localStorage.setItem(k, JSON.stringify([])); } catch (err) {}
+    });
+
+    showToast(
+      'System data reset successfully! You now have a clean slate ready to insert live projects, plots, customers, and financial records.',
+      'success',
+      'Data Reset (v2.7.0 Clean Slate)'
+    );
+  };
+
   return (
     <ERPContext.Provider value={{
       currentTab,
@@ -1355,7 +1405,8 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       removeToast,
       showConfirm,
       showAlert,
-      closeConfirmDialog
+      closeConfirmDialog,
+      resetAllDataToCleanSlate
     }}>
       {children}
     </ERPContext.Provider>

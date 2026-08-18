@@ -170,7 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
           {!sidebarCollapsed ? (
             <>
               <div className="text-[11px] text-slate-400 font-semibold truncate">Tayeeba Housing Ltd. ERP</div>
-              <div className="text-[10px] text-slate-500 font-mono">v2.5 • Central LAN Active</div>
+              <div className="text-[10px] text-slate-500 font-mono">v2.7 • Production Cloud & LAN</div>
             </>
           ) : (
             <button

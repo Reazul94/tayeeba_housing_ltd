@@ -1,6 +1,6 @@
 {
   "name": "tayeeba-erp-server",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,8 @@
     "test": "node tests/runTests.js",
     "create-admin": "node ../scripts/create-admin.js",
     "setup-storage": "node ../scripts/setup-storage.js",
-    "migrate-db": "node ../scripts/migrate-sqlite-to-pg.js"
+    "migrate-db": "node ../scripts/migrate-sqlite-to-pg.js",
+    "reset-data": "node ../scripts/reset-database.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
