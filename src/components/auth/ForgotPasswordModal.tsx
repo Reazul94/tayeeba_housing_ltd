@@ -10,6 +10,8 @@ interface ForgotPasswordModalProps {
   onSuccessLogin: (userId: string) => void;
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClose, onSuccessLogin }) => {
   const { usersList } = useERP();
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Email/ID Input, 2: OTP Entry, 3: New Password
@@ -36,7 +38,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClos
     setErrorMsg(null);
 
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/auth/forgot-password/request', {
+      const res = await fetch(`${API_BASE}/auth/forgot-password/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: identifier.trim() })
@@ -86,7 +88,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClos
     setErrorMsg(null);
 
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/auth/forgot-password/verify', {
+      const res = await fetch(`${API_BASE}/auth/forgot-password/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: targetUserId, otp: enteredOtp.trim() })
@@ -135,7 +137,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ onClos
     setErrorMsg(null);
 
     try {
-      await fetch('http://127.0.0.1:5000/api/auth/forgot-password/reset', {
+      await fetch(`${API_BASE}/auth/forgot-password/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

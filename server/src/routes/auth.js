@@ -529,4 +529,182 @@ router.get('/permissions', authenticate, async (req, res) => {
   }
 });
 
+// ============================================================
+// FORGOT PASSWORD & EMAIL OTP WORKFLOW
+// ============================================================
+const otpStore = new Map(); // key: userId/email, value: { otp, expiresAt, userId }
+
+// Helper: send OTP email via nodemailer
+async function sendOtpEmail(targetEmail, otp, userName) {
+  try {
+    const nodemailer = (await import('nodemailer')).default;
+    const emailUser = process.env.EMAIL_USER || 'sbmreazul@gmail.com';
+    const emailPass = process.env.EMAIL_PASS;
+
+    if (!emailPass) {
+      console.log(`[DEV OTP NOTIFICATION] OTP for ${targetEmail}: ${otp}`);
+      return { sent: false, note: 'EMAIL_PASS not configured, OTP logged in console' };
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: emailUser,
+        pass: emailPass
+      }
+    });
+
+    await transporter.sendMail({
+      from: `"Tayeeba Housing Ltd. ERP" <${emailUser}>`,
+      to: targetEmail,
+      subject: `[Tayeeba ERP] Password Reset OTP: ${otp}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #1e293b; background: #0f172a; color: #f8fafc; border-radius: 12px;">
+          <h2 style="color: #f59e0b; margin-bottom: 8px;">TAYEEBA HOUSING LTD.</h2>
+          <p style="color: #94a3b8; font-size: 14px;">Enterprise Real Estate ERP & Accounts</p>
+          <hr style="border: 0; border-top: 1px solid #334155; margin: 16px 0;" />
+          <p>Dear <strong>${userName || 'User'}</strong>,</p>
+          <p>You have requested a secure password reset for your Tayeeba Housing Ltd. ERP account.</p>
+          <div style="text-align: center; margin: 24px 0;">
+            <span style="display: inline-block; font-size: 32px; font-weight: bold; letter-spacing: 6px; padding: 12px 24px; background: #1e293b; border: 2px solid #f59e0b; border-radius: 8px; color: #38bdf8;">
+              ${otp}
+            </span>
+          </div>
+          <p style="color: #94a3b8; font-size: 13px;">This OTP is valid for <strong>10 minutes</strong>. If you did not request this reset, please notify system administrators immediately.</p>
+          <hr style="border: 0; border-top: 1px solid #334155; margin: 16px 0;" />
+          <p style="font-size: 11px; color: #64748b; text-align: center;">© 2026 Tayeeba Housing Ltd. • Gulshan Tower, Dhaka-1212</p>
+        </div>
+      `
+    });
+
+    return { sent: true };
+  } catch (err) {
+    console.error('Failed to send OTP email:', err.message);
+    return { sent: false, error: err.message };
+  }
+}
+
+// POST /api/auth/forgot-password/request (or /api/auth/forgot-password)
+const handleForgotPasswordRequest = async (req, res) => {
+  const { identifier } = req.body;
+  if (!identifier) {
+    return res.status(400).json({ error: 'Email or User ID is required.' });
+  }
+
+  try {
+    const term = identifier.trim();
+    const result = await query(
+      `SELECT * FROM user_info 
+       WHERE LOWER(user_id) = LOWER($1) OR LOWER(email) = LOWER($1) OR LOWER(employee_code) = LOWER($1)
+       LIMIT 1`,
+      [term]
+    );
+
+    let user = result.rows[0];
+    let targetEmail = user?.email || (term.includes('@') ? term : 'sbmreazul@gmail.com');
+    let userId = user?.user_id || term;
+    let userName = user?.display_name || 'ERP User';
+
+    // Generate secure 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    otpStore.set(userId.toLowerCase(), { otp, expiresAt, targetEmail });
+    if (user?.email) otpStore.set(user.email.toLowerCase(), { otp, expiresAt, userId });
+
+    // Send real email if configured
+    await sendOtpEmail(targetEmail, otp, userName);
+
+    // Mask email for privacy (e.g. sb***@gmail.com)
+    const emailParts = targetEmail.split('@');
+    const masked = emailParts[0].length > 2 
+      ? emailParts[0].substring(0, 2) + '*'.repeat(Math.max(2, emailParts[0].length - 2)) + '@' + emailParts[1]
+      : targetEmail;
+
+    return res.json({
+      success: true,
+      message: `Verification OTP dispatched to ${masked}`,
+      userId: userId,
+      maskedEmail: masked,
+      demoOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
+    });
+  } catch (err) {
+    console.error('Forgot password request error:', err.message);
+    return res.status(500).json({ error: 'Failed to initiate password reset request.' });
+  }
+};
+
+router.post('/forgot-password/request', handleForgotPasswordRequest);
+router.post('/forgot-password', handleForgotPasswordRequest);
+
+// POST /api/auth/forgot-password/verify
+router.post('/forgot-password/verify', (req, res) => {
+  const { userId, otp } = req.body;
+  if (!userId || !otp) {
+    return res.status(400).json({ error: 'User ID and OTP are required.' });
+  }
+
+  const record = otpStore.get(userId.trim().toLowerCase());
+  if (!record) {
+    return res.status(400).json({ error: 'No active OTP request found or OTP has expired.' });
+  }
+
+  if (Date.now() > record.expiresAt) {
+    otpStore.delete(userId.trim().toLowerCase());
+    return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
+  }
+
+  if (record.otp !== otp.trim()) {
+    return res.status(400).json({ error: 'Invalid OTP code. Please check your email.' });
+  }
+
+  return res.json({ success: true, message: 'OTP verified successfully. You can now set your new password.' });
+});
+
+// POST /api/auth/forgot-password/reset (or /api/auth/reset-password)
+const handlePasswordReset = async (req, res) => {
+  const { userId, otp, newPassword } = req.body;
+  if (!userId || !newPassword) {
+    return res.status(400).json({ error: 'User ID and New Password are required.' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+  }
+
+  try {
+    const record = otpStore.get(userId.trim().toLowerCase());
+    if (otp && (!record || record.otp !== otp.trim())) {
+      return res.status(400).json({ error: 'Invalid or expired OTP token.' });
+    }
+
+    const SALT_ROUNDS = 12;
+    const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    await query(
+      `UPDATE user_info 
+       SET password_hash = $1, 
+           is_locked = false,
+           failed_login_attempts = 0,
+           must_change_password = false,
+           status = CASE WHEN status = 'INITIAL' OR status = 'LOCKED' THEN 'ACTIVE' ELSE status END,
+           last_password_change_at = NOW(),
+           updated_at = NOW(),
+           updated_by = 'SELF_RESET'
+       WHERE LOWER(user_id) = LOWER($2) OR LOWER(email) = LOWER($2) OR LOWER(employee_code) = LOWER($2)`,
+      [newHash, userId.trim()]
+    );
+
+    otpStore.delete(userId.trim().toLowerCase());
+
+    return res.json({ success: true, message: 'Password reset successfully! You can now log in.' });
+  } catch (err) {
+    console.error('Password reset error:', err.message);
+    return res.status(500).json({ error: 'Failed to reset password.' });
+  }
+};
+
+router.post('/forgot-password/reset', handlePasswordReset);
+router.post('/reset-password', handlePasswordReset);
+
 export default router;
