@@ -159,6 +159,13 @@ interface ERPContextType {
   showAlert: (title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
   closeConfirmDialog: () => void;
 
+  // Project & Plot Management
+  addProject: (project: Omit<Project, 'id' | 'availablePlotsCount' | 'bookedPlotsCount' | 'soldPlotsCount' | 'actualDevelopmentCost'> & Partial<Project>) => Project;
+  updateProject: (project: Project) => void;
+  deleteProject: (projectId: string) => void;
+  addPlot: (plot: Omit<Plot, 'id'>) => Plot;
+  updatePlot: (plot: Plot) => void;
+
   // Clean Slate & Version Upgrade
   resetAllDataToCleanSlate: () => Promise<void>;
 }
@@ -235,61 +242,79 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) { return mockLoginHistories; }
   });
 
-  // Load / Persist data
+  // Check version and purge old v2.5 mock data
+  const APP_VERSION = '2.7.0';
+  if (typeof window !== 'undefined') {
+    try {
+      const storedVer = localStorage.getItem('thl_app_version');
+      if (storedVer !== APP_VERSION) {
+        const keys = [
+          'thl_projects', 'thl_plots', 'thl_customers', 'thl_leads',
+          'thl_site_visits', 'thl_bookings', 'thl_installments', 'thl_receipts',
+          'thl_expenses', 'thl_journal_entries', 'thl_land_parcels',
+          'thl_commissions', 'thl_vendors', 'thl_payrolls', 'thl_audit_logs'
+        ];
+        keys.forEach(k => localStorage.setItem(k, JSON.stringify([])));
+        localStorage.setItem('thl_app_version', APP_VERSION);
+      }
+    } catch (e) {}
+  }
+
+  // Load / Persist data (Clean Slate by default for live data entry)
   const [projects, setProjects] = useState<Project[]>(() => {
     try {
       const saved = localStorage.getItem('thl_projects');
-      return saved ? JSON.parse(saved) : mockProjects;
-    } catch (e) { return mockProjects; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [plots, setPlots] = useState<Plot[]>(() => {
     try {
       const saved = localStorage.getItem('thl_plots');
-      return saved ? JSON.parse(saved) : mockPlots;
-    } catch (e) { return mockPlots; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
     try {
       const saved = localStorage.getItem('thl_customers');
-      return saved ? JSON.parse(saved) : mockCustomers;
-    } catch (e) { return mockCustomers; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [leads, setLeads] = useState<Lead[]>(() => {
     try {
       const saved = localStorage.getItem('thl_leads');
-      return saved ? JSON.parse(saved) : mockLeads;
-    } catch (e) { return mockLeads; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [siteVisits, setSiteVisits] = useState<SiteVisit[]>(() => {
     try {
       const saved = localStorage.getItem('thl_site_visits');
-      return saved ? JSON.parse(saved) : mockSiteVisits;
-    } catch (e) { return mockSiteVisits; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
     try {
       const saved = localStorage.getItem('thl_bookings');
-      return saved ? JSON.parse(saved) : mockBookings;
-    } catch (e) { return mockBookings; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [installments, setInstallments] = useState<Installment[]>(() => {
     try {
       const saved = localStorage.getItem('thl_installments');
-      return saved ? JSON.parse(saved) : mockInstallments;
-    } catch (e) { return mockInstallments; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [receipts, setReceipts] = useState<PaymentReceipt[]>(() => {
     try {
       const saved = localStorage.getItem('thl_receipts');
-      return saved ? JSON.parse(saved) : mockReceipts;
-    } catch (e) { return mockReceipts; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [accounts, setAccounts] = useState<Account[]>(() => {
@@ -302,57 +327,57 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(() => {
     try {
       const saved = localStorage.getItem('thl_journal_entries');
-      return saved ? JSON.parse(saved) : mockJournalEntries;
-    } catch (e) { return mockJournalEntries; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     try {
       const saved = localStorage.getItem('thl_expenses');
-      return saved ? JSON.parse(saved) : mockExpenses;
-    } catch (e) { return mockExpenses; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [landParcels, setLandParcels] = useState<LandParcel[]>(() => {
     try {
       const saved = localStorage.getItem('thl_land_parcels');
-      return saved ? JSON.parse(saved) : mockLandParcels;
-    } catch (e) { return mockLandParcels; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [commissions, setCommissions] = useState<Commission[]>(() => {
     try {
       const saved = localStorage.getItem('thl_commissions');
-      return saved ? JSON.parse(saved) : mockCommissions;
-    } catch (e) { return mockCommissions; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [vendors, setVendors] = useState<Vendor[]>(() => {
     try {
       const saved = localStorage.getItem('thl_vendors');
-      return saved ? JSON.parse(saved) : mockVendors;
-    } catch (e) { return mockVendors; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [employees, setEmployees] = useState<Employee[]>(() => {
     try {
       const saved = localStorage.getItem('thl_employees');
-      return saved ? JSON.parse(saved) : mockEmployees;
-    } catch (e) { return mockEmployees; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [payrolls, setPayrolls] = useState<Payroll[]>(() => {
     try {
       const saved = localStorage.getItem('thl_payrolls');
-      return saved ? JSON.parse(saved) : mockPayrolls;
-    } catch (e) { return mockPayrolls; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
     try {
       const saved = localStorage.getItem('thl_audit_logs');
-      return saved ? JSON.parse(saved) : mockAuditLogs;
-    } catch (e) { return mockAuditLogs; }
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
   });
 
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
@@ -1338,6 +1363,49 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const addProject = (projectData: Omit<Project, 'id' | 'availablePlotsCount' | 'bookedPlotsCount' | 'soldPlotsCount' | 'actualDevelopmentCost'> & Partial<Project>): Project => {
+    const newPrj: Project = {
+      ...projectData,
+      id: `PRJ-${Date.now().toString().slice(-6)}`,
+      availablePlotsCount: projectData.availablePlotsCount ?? projectData.totalPlots,
+      bookedPlotsCount: projectData.bookedPlotsCount ?? 0,
+      soldPlotsCount: projectData.soldPlotsCount ?? 0,
+      actualDevelopmentCost: projectData.actualDevelopmentCost ?? 0
+    };
+    setProjects(prev => [newPrj, ...prev]);
+    showToast(`Project '${newPrj.name}' created successfully!`, 'success', 'Project Created');
+    logAuditAction('Created Project', 'Projects', newPrj.id, undefined, `Created project ${newPrj.name} (${newPrj.code})`);
+    return newPrj;
+  };
+
+  const updateProject = (project: Project) => {
+    setProjects(prev => prev.map(p => p.id === project.id ? project : p));
+    showToast(`Project '${project.name}' updated successfully!`, 'success', 'Project Updated');
+  };
+
+  const deleteProject = (projectId: string) => {
+    const prj = projects.find(p => p.id === projectId);
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    setPlots(prev => prev.filter(pl => pl.projectId !== projectId));
+    showToast(`Project '${prj?.name || projectId}' removed.`, 'info', 'Project Deleted');
+  };
+
+  const addPlot = (plotData: Omit<Plot, 'id'>): Plot => {
+    const newPlot: Plot = {
+      ...plotData,
+      id: `PLT-${Date.now().toString().slice(-6)}`,
+      status: plotData.status || 'Available'
+    };
+    setPlots(prev => [newPlot, ...prev]);
+    showToast(`Plot '${newPlot.plotNumber}' added to inventory!`, 'success', 'Plot Added');
+    return newPlot;
+  };
+
+  const updatePlot = (plot: Plot) => {
+    setPlots(prev => prev.map(p => p.id === plot.id ? plot : p));
+    showToast(`Plot '${plot.plotNumber}' updated.`, 'success', 'Plot Updated');
+  };
+
   return (
     <ERPContext.Provider value={{
       currentTab,
@@ -1406,7 +1474,12 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showConfirm,
       showAlert,
       closeConfirmDialog,
-      resetAllDataToCleanSlate
+      resetAllDataToCleanSlate,
+      addProject,
+      updateProject,
+      deleteProject,
+      addPlot,
+      updatePlot
     }}>
       {children}
     </ERPContext.Provider>

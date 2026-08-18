@@ -85,12 +85,12 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
             <h1 className="font-extrabold tracking-tight text-sm md:text-lg text-white font-sans">
               TAYEEBA HOUSING <span className="text-gold-400">LTD.</span>
             </h1>
-            <span className="bg-tayeeba-950 text-tayeeba-400 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-bold border border-tayeeba-600/40">
-              ERP v2.5
+            <span className="bg-gradient-to-r from-emerald-950 to-tayeeba-900 text-emerald-300 text-[10px] md:text-xs px-2.5 py-0.5 rounded-full font-extrabold border border-emerald-500/50 shadow-sm shadow-emerald-950/50">
+              ERP v2.7
             </span>
-            <span className="hidden sm:flex items-center space-x-1 bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-500/40" title="Central LAN Database Connected">
+            <span className="hidden sm:flex items-center space-x-1 bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-500/40" title="Central Relational Database Connected">
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
-              <span>LAN ONLINE</span>
+              <span>LIVE CLOUD & LAN</span>
             </span>
           </div>
           <p className="hidden sm:block text-[11px] text-slate-400 font-medium">Real Estate ERP, CRM & Accounts Platform</p>

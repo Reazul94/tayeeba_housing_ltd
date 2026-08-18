@@ -1,6 +1,6 @@
 // ============================================================
-// TAYEEBA HOUSING LTD. ERP v2.6
-// Frontend: Permission Guards
+// TAYEEBA HOUSING LTD. ERP v2.7
+// Permission Guards: ActionButton, PermissionGuard, ModuleGuard
 // ============================================================
 
 import React from 'react';

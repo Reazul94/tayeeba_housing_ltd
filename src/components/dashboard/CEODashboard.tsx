@@ -52,17 +52,25 @@ export const CEODashboard: React.FC = () => {
   const soldPlots = plots.filter(p => p.status === 'Sold').length;
   const totalPlotsCount = plots.length;
 
-  // Chart Data: Monthly Collections & Sales Trend
-  const monthlyTrendData = [
-    { month: 'Jan', sales: 12000000, collection: 9500000 },
-    { month: 'Feb', sales: 15800000, collection: 12400000 },
-    { month: 'Mar', sales: 9400000,  collection: 11000000 },
-    { month: 'Apr', sales: 18500000, collection: 14200000 },
-    { month: 'May', sales: 22000000, collection: 16800000 },
-    { month: 'Jun', sales: 14000000, collection: 13500000 },
-    { month: 'Jul', sales: 19500000, collection: 17200000 },
-    { month: 'Aug', sales: totalSalesValue / 2, collection: monthlyCollection + 5000000 },
-  ];
+  // Chart Data: Monthly Collections & Sales Trend from Live Bookings & Receipts
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const currentYear = new Date().getFullYear();
+  const monthlyTrendData = months.map((m, idx) => {
+    const monthNum = String(idx + 1).padStart(2, '0');
+    const monthPrefix = `${currentYear}-${monthNum}`;
+    const monthBookingsSales = bookings
+      .filter(b => b.bookingDate && b.bookingDate.startsWith(monthPrefix))
+      .reduce((sum, b) => sum + b.finalPrice, 0);
+    const monthReceiptsCol = receipts
+      .filter(r => r.date && r.date.startsWith(monthPrefix))
+      .reduce((sum, r) => sum + r.amount, 0);
+
+    return {
+      month: m,
+      sales: monthBookingsSales,
+      collection: monthReceiptsCol
+    };
+  });
 
   // Pie Chart Data: Plot Inventory Breakdown
   const inventoryPieData = [
@@ -83,7 +91,7 @@ export const CEODashboard: React.FC = () => {
       name: p.code,
       fullName: p.name,
       budget: p.developmentBudget / 1000000, // In Millions BDT
-      actualCost: p.actualDevelopmentCost / 1000000,
+      actualCost: (p.actualDevelopmentCost || 0) / 1000000,
       sales: prjSales / 1000000,
       collection: prjCollection / 1000000
     };
@@ -92,22 +100,28 @@ export const CEODashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Banner Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-tayeeba-950 to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-3 mb-1">
-            <h1 className="text-2xl font-extrabold text-white">
+            <h1 className="text-2xl font-black text-white">
               {isBn ? "চেয়ারম্যান ও সিইও ড্যাশবোর্ড" : "CEO & Executive Command Dashboard"}
             </h1>
-            <span className="bg-gold-500/20 text-gold-400 border border-gold-500/40 text-xs px-2.5 py-0.5 rounded-full font-bold">
-              LIVE DATA SYNC
+            <span className="bg-gradient-to-r from-emerald-950 to-tayeeba-900 text-emerald-300 border border-emerald-500/50 text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-sm">
+              v2.7 LIVE
             </span>
           </div>
           <p className="text-xs text-slate-400">
-            {isBn ? "তৈয়্যবা হাউজিং লিঃ এর সকল প্রজেক্ট, সেলস, কাস্টমার কালেকশন ও একাউন্টসের লাইভ চিত্র" : "Real-time overview of projects, plot inventory, customer ledgers, sales targets & cash flow."}
+            {isBn ? "তৈয়্যবা হাউজিং লিঃ এর সকল প্রজেক্ট, সেলস, কাস্টমার কালেকশন ও একাউন্টসের লাইভ চিত্র" : "Real-time overview of housing projects, plot inventory, customer ledgers, sales targets & cash flow."}
           </p>
         </div>
 
         <div className="flex items-center space-x-3">
+          <button 
+            onClick={() => setCurrentTab('projects')}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-lg flex items-center space-x-1.5"
+          >
+            <span>+ Add Project</span>
+          </button>
           <button 
             onClick={() => setCurrentTab('bookings')}
             className="bg-tayeeba-600 hover:bg-tayeeba-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-lg flex items-center space-x-1.5"
@@ -122,6 +136,29 @@ export const CEODashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Clean Slate Quickstart Guide */}
+      {projects.length === 0 && (
+        <div className="bg-slate-900/90 border border-emerald-500/40 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center space-x-3.5">
+            <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/40 flex-shrink-0">
+              <Building className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-white">Clean Slate (v2.7) Ready for Live Production Data</h3>
+              <p className="text-xs text-slate-300">
+                The database is reset and ready. Begin by adding your actual housing projects (e.g. Tayeeba Smart City) and plot layouts.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setCurrentTab('projects')}
+            className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-extrabold rounded-xl text-xs transition shadow-lg flex items-center justify-center space-x-1.5 flex-shrink-0"
+          >
+            <span>+ Create First Project</span>
+          </button>
+        </div>
+      )}
 
       {/* Row 1: Key Financial KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

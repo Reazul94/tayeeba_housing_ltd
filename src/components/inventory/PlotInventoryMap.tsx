@@ -4,13 +4,13 @@ import { Plot, PlotStatus } from '../../types/erp';
 import { formatBDT } from '../../utils/pdfGenerator';
 import { 
   Building, Filter, Search, CheckCircle, Info, X, 
-  User, DollarSign, Calendar, FileText, ArrowRight, RefreshCw 
+  User, DollarSign, Calendar, FileText, ArrowRight, RefreshCw, Plus, Layers 
 } from 'lucide-react';
 
 export const PlotInventoryMap: React.FC = () => {
   const { 
     plots, projects, customers, bookings, 
-    setCurrentTab, language 
+    setCurrentTab, language, addPlot, showToast 
   } = useERP();
 
   const isBn = language === 'bn';
@@ -20,6 +20,18 @@ export const PlotInventoryMap: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [plotSearch, setPlotSearch] = useState<string>('');
   const [activePlot, setActivePlot] = useState<Plot | null>(null);
+
+  // Add Plot Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newPlotNo, setNewPlotNo] = useState('');
+  const [newProjectId, setNewProjectId] = useState(projects[0]?.id || '');
+  const [newBlock, setNewBlock] = useState('Block A');
+  const [newZone, setNewZone] = useState('Zone 1');
+  const [newRoad, setNewRoad] = useState('Road 01 (60ft Avenue)');
+  const [newKatha, setNewKatha] = useState<number>(3.0);
+  const [newFacing, setNewFacing] = useState<Plot['facing']>('South');
+  const [newPerKathaPrice, setNewPerKathaPrice] = useState<number>(1200000);
+  const [newDiscount, setNewDiscount] = useState<number>(0);
 
   // Filtered Plots
   const filteredPlots = plots.filter(p => {
@@ -68,37 +80,52 @@ export const PlotInventoryMap: React.FC = () => {
       <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg space-y-4">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-extrabold text-white flex items-center space-x-2">
-              <Building className="w-5 h-5 text-tayeeba-400" />
-              <span>{isBn ? "প্লট ইনভেন্টরি ও ইন্টারেক্টিভ ম্যাপ" : "Visual Plot Inventory & Layout Map"}</span>
-            </h1>
-            <p className="text-xs text-slate-400">
+            <div className="flex items-center space-x-2">
+              <Building className="w-5 h-5 text-emerald-400" />
+              <h1 className="text-xl font-black text-white">
+                {isBn ? "প্লট ইনভেন্টরি ও ইন্টারেক্টিভ ম্যাপ" : "Visual Plot Inventory & Layout Map"}
+              </h1>
+              <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full text-[10px] font-extrabold uppercase">
+                {plots.length} Plots Registered
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
               {isBn ? "সকল প্রজেক্টের প্লটের কালার-কোডেড স্থিতি, সাইজ, কাস্টমার বুকিং ও আর্থিক অবস্থা" : "Color-coded interactive property map grid with live customer & booking details."}
             </p>
           </div>
 
-          {/* Status Legend */}
-          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
-            <span className="flex items-center space-x-1.5 text-emerald-400">
-              <span className="w-3 h-3 bg-emerald-500 rounded-full inline-block"></span>
-              <span>Available</span>
-            </span>
-            <span className="flex items-center space-x-1.5 text-amber-400">
-              <span className="w-3 h-3 bg-amber-500 rounded-full inline-block"></span>
-              <span>Booked</span>
-            </span>
-            <span className="flex items-center space-x-1.5 text-rose-400">
-              <span className="w-3 h-3 bg-rose-500 rounded-full inline-block"></span>
-              <span>Sold</span>
-            </span>
-            <span className="flex items-center space-x-1.5 text-blue-400">
-              <span className="w-3 h-3 bg-blue-500 rounded-full inline-block"></span>
-              <span>Reserved</span>
-            </span>
-            <span className="flex items-center space-x-1.5 text-slate-400">
-              <span className="w-3 h-3 bg-slate-500 rounded-full inline-block"></span>
-              <span>Cancelled/Hold</span>
-            </span>
+          <div className="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end">
+            <button
+              onClick={() => {
+                if (projects.length === 0) {
+                  showToast('Please create a Housing Project first before adding plots.', 'warning');
+                  setCurrentTab('projects');
+                  return;
+                }
+                setNewProjectId(projects[0].id);
+                setShowAddModal(true);
+              }}
+              className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-950/50 flex items-center space-x-1.5 transition text-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Add Plot</span>
+            </button>
+
+            {/* Status Legend */}
+            <div className="hidden sm:flex flex-wrap items-center gap-2.5 text-xs font-semibold bg-slate-900/80 p-2 rounded-xl border border-slate-700">
+              <span className="flex items-center space-x-1 text-emerald-400">
+                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block"></span>
+                <span>Avail</span>
+              </span>
+              <span className="flex items-center space-x-1 text-amber-400">
+                <span className="w-2.5 h-2.5 bg-amber-500 rounded-full inline-block"></span>
+                <span>Booked</span>
+              </span>
+              <span className="flex items-center space-x-1 text-rose-400">
+                <span className="w-2.5 h-2.5 bg-rose-500 rounded-full inline-block"></span>
+                <span>Sold</span>
+              </span>
+            </div>
           </div>
         </div>
 
@@ -112,7 +139,7 @@ export const PlotInventoryMap: React.FC = () => {
               value={plotSearch}
               onChange={(e) => setPlotSearch(e.target.value)}
               placeholder="Search Plot No (e.g. A-101)..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-tayeeba-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
             />
           </div>
 
@@ -120,7 +147,7 @@ export const PlotInventoryMap: React.FC = () => {
           <select 
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-tayeeba-500"
+            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
           >
             <option value="ALL">All Projects ({projects.length})</option>
             {projects.map(p => (
@@ -132,26 +159,26 @@ export const PlotInventoryMap: React.FC = () => {
           <select 
             value={selectedBlock}
             onChange={(e) => setSelectedBlock(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-tayeeba-500"
+            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
           >
             <option value="ALL">All Blocks</option>
             <option value="Block A">Block A</option>
             <option value="Block B">Block B</option>
             <option value="Block C">Block C</option>
+            <option value="Block D">Block D</option>
           </select>
 
           {/* Status Filter */}
           <select 
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-tayeeba-500"
+            className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
           >
             <option value="ALL">All Statuses</option>
-            <option value="Available">Available (Green)</option>
-            <option value="Booked">Booked (Yellow)</option>
-            <option value="Sold">Sold (Red)</option>
-            <option value="Reserved">Reserved (Blue)</option>
-            <option value="Cancelled">Cancelled (Grey)</option>
+            <option value="Available">Available</option>
+            <option value="Booked">Booked</option>
+            <option value="Sold">Sold</option>
+            <option value="Reserved">Reserved</option>
           </select>
         </div>
       </div>
@@ -162,36 +189,244 @@ export const PlotInventoryMap: React.FC = () => {
           <span className="text-xs font-semibold text-slate-400">
             Showing {filteredPlots.length} of {plots.length} total plots
           </span>
-          <span className="text-xs text-tayeeba-400 font-medium">Click any plot card to view details</span>
+          <span className="text-xs text-emerald-400 font-medium">Click any plot card to view details</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {filteredPlots.map(plot => (
-            <button
-              key={plot.id}
-              onClick={() => setActivePlot(plot)}
-              className={`p-3.5 rounded-xl border transition-all text-left relative group shadow-md flex flex-col justify-between h-28 ${getPlotBadge(plot.status)}`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="font-extrabold text-sm tracking-tight">{plot.plotNumber}</div>
-                  <div className="text-[10px] opacity-80">{plot.block}</div>
+        {filteredPlots.length === 0 ? (
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center space-y-3">
+            <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-400">
+              <Layers className="w-6 h-6" />
+            </div>
+            <h3 className="text-sm font-bold text-white">No Plots Found in Inventory</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              {projects.length === 0
+                ? "First create a housing project, then add plots to populate the inventory map."
+                : "Click '+ Add Plot' above to start adding plots to this project."}
+            </p>
+            {projects.length > 0 && (
+              <button
+                onClick={() => {
+                  setNewProjectId(projects[0].id);
+                  setShowAddModal(true);
+                }}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs inline-flex items-center space-x-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Your First Plot</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {filteredPlots.map(plot => (
+              <button
+                key={plot.id}
+                onClick={() => setActivePlot(plot)}
+                className={`p-3.5 rounded-xl border transition-all text-left relative group shadow-md flex flex-col justify-between h-28 ${getPlotBadge(plot.status)}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="font-extrabold text-sm tracking-tight">{plot.plotNumber}</div>
+                    <div className="text-[10px] opacity-80">{plot.block}</div>
+                  </div>
+                  <span className={`w-2.5 h-2.5 rounded-full ${getStatusColorDot(plot.status)}`}></span>
                 </div>
-                <span className={`w-2.5 h-2.5 rounded-full ${getStatusColorDot(plot.status)}`}></span>
-              </div>
 
-              <div>
-                <div className="text-xs font-bold">{plot.sizeKatha} Katha</div>
-                <div className="text-[10px] opacity-75">{plot.facing}</div>
-              </div>
+                <div>
+                  <div className="text-xs font-bold">{plot.sizeKatha} Katha</div>
+                  <div className="text-[10px] opacity-75">{plot.facing}</div>
+                </div>
 
-              <div className="text-[10px] font-extrabold text-right border-t border-current/20 pt-1">
-                {formatBDT(plot.finalPrice)}
-              </div>
-            </button>
-          ))}
-        </div>
+                <div className="text-[10px] font-extrabold text-right border-t border-current/20 pt-1">
+                  {formatBDT(plot.finalPrice)}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Add Plot Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+              <div className="flex items-center space-x-2">
+                <Building className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-extrabold text-white text-base">Add New Plot to Inventory</h3>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newPlotNo.trim() || !newProjectId) {
+                  showToast('Please specify Plot Number and Project', 'warning');
+                  return;
+                }
+                const selectedPrj = projects.find(p => p.id === newProjectId);
+                const base = Number(newKatha) * Number(newPerKathaPrice);
+                const final = Math.max(0, base - Number(newDiscount));
+
+                addPlot({
+                  plotNumber: newPlotNo.toUpperCase(),
+                  projectId: newProjectId,
+                  projectName: selectedPrj?.name || 'Project',
+                  block: newBlock,
+                  zone: newZone,
+                  road: newRoad,
+                  sizeKatha: Number(newKatha),
+                  facing: newFacing,
+                  perKathaPrice: Number(newPerKathaPrice),
+                  basePrice: base,
+                  discount: Number(newDiscount),
+                  finalPrice: final,
+                  status: 'Available',
+                  handoverStatus: 'Pending'
+                });
+
+                setShowAddModal(false);
+                setNewPlotNo('');
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-slate-300 font-bold">Select Housing Project *</label>
+                  <select
+                    required
+                    value={newProjectId}
+                    onChange={(e) => setNewProjectId(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-medium focus:border-emerald-500 focus:outline-none"
+                  >
+                    {projects.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-300 font-bold">Plot Number *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. A-101"
+                    value={newPlotNo}
+                    onChange={(e) => setNewPlotNo(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono uppercase focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-300 font-bold">Block</label>
+                  <input
+                    type="text"
+                    value={newBlock}
+                    onChange={(e) => setNewBlock(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-300 font-bold">Zone</label>
+                  <input
+                    type="text"
+                    value={newZone}
+                    onChange={(e) => setNewZone(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-300 font-bold">Road</label>
+                  <input
+                    type="text"
+                    value={newRoad}
+                    onChange={(e) => setNewRoad(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-300 font-bold">Size (Katha)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={newKatha}
+                    onChange={(e) => setNewKatha(Number(e.target.value))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-300 font-bold">Facing</label>
+                  <select
+                    value={newFacing}
+                    onChange={(e) => setNewFacing(e.target.value as Plot['facing'])}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  >
+                    <option value="North">North</option>
+                    <option value="South">South</option>
+                    <option value="East">East</option>
+                    <option value="West">West</option>
+                    <option value="North-East">North-East (Corner)</option>
+                    <option value="South-East">South-East (Corner)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-300 font-bold">Price per Katha (BDT ৳)</label>
+                  <input
+                    type="number"
+                    value={newPerKathaPrice}
+                    onChange={(e) => setNewPerKathaPrice(Number(e.target.value))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-300 font-bold">Discount (BDT ৳)</label>
+                  <input
+                    type="number"
+                    value={newDiscount}
+                    onChange={(e) => setNewDiscount(Number(e.target.value))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex justify-between items-center text-xs">
+                <span className="text-slate-400">Total Plot Price:</span>
+                <span className="text-emerald-400 font-black text-sm">
+                  {formatBDT(Math.max(0, Number(newKatha) * Number(newPerKathaPrice) - Number(newDiscount)))}
+                </span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-700 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white font-extrabold rounded-xl shadow-lg transition"
+                >
+                  Add Plot to Map
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Plot Information Modal */}
       {activePlot && (
