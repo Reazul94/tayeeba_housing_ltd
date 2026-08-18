@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import { query, withTransaction } from '../db.js';
 import { authenticate, requireModule, requireAction } from '../middleware/auth.js';
+import { uploadDocument, getSignedUrl } from '../services/storageService.js';
 
 const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
@@ -1190,6 +1191,45 @@ router.get('/documents', authenticate, requireModule('documents'), async (req, r
     return res.json({ documents: result.rows });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to load documents.' });
+  }
+});
+
+router.post('/documents/upload', authenticate, requireModule('documents'), upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded. Please select a valid document.' });
+  }
+
+  const { bucketName, customerId, projectId, plotId, employeeId, documentType, description } = req.body;
+
+  try {
+    const result = await uploadDocument({
+      file: req.file,
+      bucketName: bucketName || 'customer-documents',
+      customerId,
+      projectId,
+      plotId,
+      employeeId,
+      documentType: documentType || 'Other',
+      description: description || '',
+      uploadedBy: req.user.userId
+    });
+
+    return res.status(201).json({ success: true, ...result });
+  } catch (err) {
+    console.error('Document upload error:', err.message);
+    return res.status(500).json({ error: 'Failed to upload document.' });
+  }
+});
+
+router.get('/documents/:id/signed-url', authenticate, requireModule('documents'), async (req, res) => {
+  const { id } = req.params;
+  const { expiresIn = 60 } = req.query;
+
+  try {
+    const result = await getSignedUrl(id, parseInt(expiresIn));
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    return res.status(404).json({ error: err.message });
   }
 });
 
