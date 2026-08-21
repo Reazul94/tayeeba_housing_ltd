@@ -8,7 +8,9 @@ import {
   CashBookTransaction, BankAccount, BankTransaction, BankReconciliation,
   SalarySheet, SalaryDetail, DirectorHonorarium,
   Meeting, MeetingMember, MeetingAgenda, MeetingActionItem,
-  CapitalAccount, CapitalTransaction, CapitalLedger
+  CapitalAccount, CapitalTransaction, CapitalLedger,
+  DirectorPlotDistribution, ClientPlotDistribution,
+  InstallmentCommission, CommissionRefund, BookingCommission, BookingCommissionRefund, InstallmentRefund
 } from '../types/erp';
 import { 
   mockUsers, mockProjects, mockPlots, mockCustomers, mockLeads, 
@@ -205,6 +207,27 @@ interface ERPContextType {
   capitalTransactions: CapitalTransaction[];
   addCapitalAccount: (acc: Omit<CapitalAccount, 'id' | 'contributorCode' | 'receivedCapital' | 'dueCapital' | 'status'> & Partial<CapitalAccount>) => CapitalAccount;
   addCapitalTransaction: (tx: Omit<CapitalTransaction, 'id' | 'transactionCode' | 'status' | 'approvedBy'> & Partial<CapitalTransaction>) => CapitalTransaction;
+
+  // 5. Plot Distributions (v3.0 Sections 16-21)
+  directorPlotDistributions: DirectorPlotDistribution[];
+  clientPlotDistributions: ClientPlotDistribution[];
+  addDirectorPlotDistribution: (dist: Omit<DirectorPlotDistribution, 'id'>) => DirectorPlotDistribution;
+  addClientPlotDistribution: (dist: Omit<ClientPlotDistribution, 'id'>) => ClientPlotDistribution;
+
+  // 6. Installment Commissions & Refunds (v3.0 Sections 22-34)
+  installmentCommissions: InstallmentCommission[];
+  commissionRefunds: CommissionRefund[];
+  bookingCommissions: BookingCommission[];
+  bookingCommissionRefunds: BookingCommissionRefund[];
+  installmentRefunds: InstallmentRefund[];
+  addInstallmentCommission: (comm: Omit<InstallmentCommission, 'id' | 'commissionCode'> & Partial<InstallmentCommission>) => InstallmentCommission;
+  approveInstallmentCommission: (id: string) => void;
+  payInstallmentCommission: (id: string, paymentMethod: string) => void;
+  refundInstallmentCommission: (refund: Omit<CommissionRefund, 'id' | 'refundCode'>) => CommissionRefund;
+  addBookingCommission: (comm: Omit<BookingCommission, 'id' | 'bookingCommissionCode'>) => BookingCommission;
+  refundBookingCommission: (refund: Omit<BookingCommissionRefund, 'id' | 'refundCode'>) => BookingCommissionRefund;
+  requestInstallmentRefund: (ref: Omit<InstallmentRefund, 'id' | 'refundCode' | 'status'>) => InstallmentRefund;
+  approveInstallmentRefund: (id: string) => void;
 
   // Clean Slate & Version Upgrade
   resetAllDataToCleanSlate: () => Promise<void>;
@@ -511,6 +534,180 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) { return []; }
   });
 
+  // 6. Plot Distribution State (v3.0)
+  const [directorPlotDistributions, setDirectorPlotDistributions] = useState<DirectorPlotDistribution[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_director_plot_distributions');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'DIR-DIST-001',
+          directorName: 'Al-Haj Engr. Tayeebur Rahman',
+          directorCode: 'DIR-01',
+          projectId: 'PRJ-TSC-001',
+          projectName: 'Tayeeba Smart City',
+          block: 'Block-A',
+          plotNumber: 'P-101',
+          plotSize: 5.0,
+          sizeUnit: 'Katha',
+          bookingDate: '2026-08-01',
+          customerName: 'Engr. Rafiqul Islam',
+          bookingValue: 7500000,
+          paidAmount: 2500000,
+          dueAmount: 5000000,
+          status: 'Booked',
+          remarks: 'Allotted via Board Resolution #BR-2026-08'
+        },
+        {
+          id: 'DIR-DIST-002',
+          directorName: 'Advocate Mahfuzur Rahman',
+          directorCode: 'DIR-02',
+          projectId: 'PRJ-TRV-002',
+          projectName: 'Tayeeba Riverside Valley',
+          block: 'Block-B',
+          plotNumber: 'P-205',
+          plotSize: 3.5,
+          sizeUnit: 'Katha',
+          bookingDate: '2026-08-10',
+          customerName: 'Dr. Sharmin Akter',
+          bookingValue: 5250000,
+          paidAmount: 5250000,
+          dueAmount: 0,
+          status: 'Sold',
+          remarks: 'Full payment cleared'
+        }
+      ];
+    } catch (e) { return []; }
+  });
+
+  const [clientPlotDistributions, setClientPlotDistributions] = useState<ClientPlotDistribution[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_client_plot_distributions');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'CLI-DIST-001',
+          clientName: 'Tariqul Islam',
+          customerId: 'CUST-1001',
+          phone: '+880 1711-234567',
+          projectId: 'PRJ-TSC-001',
+          projectName: 'Tayeeba Smart City',
+          block: 'Block-A',
+          plotNumber: 'P-104',
+          plotSize: 5.0,
+          sizeUnit: 'Katha',
+          bookingDate: '2026-08-05',
+          bookingValue: 7500000,
+          paidAmount: 2000000,
+          dueAmount: 5500000,
+          installmentStatus: 'REGULAR',
+          salesExecutive: 'Kazi Farhan',
+          bookingStatus: 'CONFIRMED'
+        },
+        {
+          id: 'CLI-DIST-002',
+          clientName: 'Dr. Nazmul Huda',
+          customerId: 'CUST-1002',
+          phone: '+880 1819-876543',
+          projectId: 'PRJ-TRV-002',
+          projectName: 'Tayeeba Riverside Valley',
+          block: 'Block-B',
+          plotNumber: 'P-210',
+          plotSize: 3.0,
+          sizeUnit: 'Katha',
+          bookingDate: '2026-08-12',
+          bookingValue: 4500000,
+          paidAmount: 1500000,
+          dueAmount: 3000000,
+          installmentStatus: 'REGULAR',
+          salesExecutive: 'Mizanur Rahman',
+          bookingStatus: 'CONFIRMED'
+        }
+      ];
+    } catch (e) { return []; }
+  });
+
+  // 7. Installment Commissions & Refunds State (v3.0)
+  const [installmentCommissions, setInstallmentCommissions] = useState<InstallmentCommission[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_installment_commissions');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'COMM-001',
+          commissionCode: 'COM-2026-0801',
+          commissionType: 'ONE_TIME',
+          customerId: 'CUST-1001',
+          customerName: 'Tariqul Islam',
+          projectId: 'PRJ-TSC-001',
+          projectName: 'Tayeeba Smart City',
+          plotNumber: 'P-104',
+          bookingId: 'BKG-001',
+          bookingNo: 'THL-BKG-2026-001',
+          installmentNo: 1,
+          salesExecutiveId: 'EMP-003',
+          salesExecutiveName: 'Kazi Farhan',
+          collectionAmount: 100000,
+          commissionRate: 2.0,
+          rateType: 'PERCENTAGE',
+          commissionAmount: 2000,
+          month: 'August',
+          year: 2026,
+          date: '2026-08-15',
+          status: 'APPROVED',
+          approvedBy: 'CEO / Director'
+        }
+      ];
+    } catch (e) { return []; }
+  });
+
+  const [commissionRefunds, setCommissionRefunds] = useState<CommissionRefund[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_commission_refunds');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  const [bookingCommissions, setBookingCommissions] = useState<BookingCommission[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_booking_commissions');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'BCOM-001',
+          bookingCommissionCode: 'BCOM-2026-001',
+          bookingId: 'BKG-001',
+          bookingNo: 'THL-BKG-2026-001',
+          customerId: 'CUST-1001',
+          customerName: 'Tariqul Islam',
+          projectId: 'PRJ-TSC-001',
+          projectName: 'Tayeeba Smart City',
+          plotNumber: 'P-104',
+          salesExecutiveId: 'EMP-003',
+          salesExecutiveName: 'Kazi Farhan',
+          bookingAmount: 500000,
+          totalSaleValue: 7500000,
+          commissionRate: 1.5,
+          rateType: 'PERCENTAGE',
+          commissionAmount: 7500,
+          date: '2026-08-05',
+          status: 'APPROVED',
+          approvedBy: 'CEO / Director'
+        }
+      ];
+    } catch (e) { return []; }
+  });
+
+  const [bookingCommissionRefunds, setBookingCommissionRefunds] = useState<BookingCommissionRefund[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_booking_commission_refunds');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  const [installmentRefunds, setInstallmentRefunds] = useState<InstallmentRefund[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_installment_refunds');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
     try {
       const saved = localStorage.getItem('thl_notifications');
@@ -606,11 +803,20 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('thl_payrolls', JSON.stringify(payrolls));
     localStorage.setItem('thl_audit_logs', JSON.stringify(auditLogs));
     localStorage.setItem('thl_notifications', JSON.stringify(notifications));
+    localStorage.setItem('thl_director_plot_distributions', JSON.stringify(directorPlotDistributions));
+    localStorage.setItem('thl_client_plot_distributions', JSON.stringify(clientPlotDistributions));
+    localStorage.setItem('thl_installment_commissions', JSON.stringify(installmentCommissions));
+    localStorage.setItem('thl_commission_refunds', JSON.stringify(commissionRefunds));
+    localStorage.setItem('thl_booking_commissions', JSON.stringify(bookingCommissions));
+    localStorage.setItem('thl_booking_commission_refunds', JSON.stringify(bookingCommissionRefunds));
+    localStorage.setItem('thl_installment_refunds', JSON.stringify(installmentRefunds));
   }, [
     currentUser, usersList, rolesList, designationsList, designationHistories, loginHistories,
     projects, plots, customers, leads, siteVisits, bookings, installments, 
     receipts, accounts, journalEntries, expenses, landParcels, commissions, 
-    vendors, employees, payrolls, auditLogs, notifications
+    vendors, employees, payrolls, auditLogs, notifications,
+    directorPlotDistributions, clientPlotDistributions,
+    installmentCommissions, commissionRefunds, bookingCommissions, bookingCommissionRefunds, installmentRefunds
   ]);
 
   // Effective permissions state (fetched from /api/auth/permissions after login)
@@ -1907,6 +2113,192 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newTx;
   };
 
+  // -------------------------------------------------------------
+  // 5. PLOT DISTRIBUTION METHODS (v3.0 Sections 16-21)
+  // -------------------------------------------------------------
+  const addDirectorPlotDistribution = (dist: Omit<DirectorPlotDistribution, 'id'>): DirectorPlotDistribution => {
+    const newDist: DirectorPlotDistribution = {
+      ...dist,
+      id: `DIR-DIST-${Date.now().toString().slice(-6)}`
+    };
+    setDirectorPlotDistributions(prev => [newDist, ...prev]);
+    showToast(`Plot ${dist.plotNumber} distributed to Director ${dist.directorName}`, 'success', 'Director Distribution Added');
+    logAuditAction('Director Plot Distribution', 'Plots', newDist.id, undefined, `${dist.directorName} - ${dist.plotNumber}`);
+    return newDist;
+  };
+
+  const addClientPlotDistribution = (dist: Omit<ClientPlotDistribution, 'id'>): ClientPlotDistribution => {
+    const newDist: ClientPlotDistribution = {
+      ...dist,
+      id: `CLI-DIST-${Date.now().toString().slice(-6)}`
+    };
+    setClientPlotDistributions(prev => [newDist, ...prev]);
+    showToast(`Plot ${dist.plotNumber} booked for Client ${dist.clientName}`, 'success', 'Client Distribution Added');
+    logAuditAction('Client Plot Distribution', 'Plots', newDist.id, undefined, `${dist.clientName} - ${dist.plotNumber}`);
+    return newDist;
+  };
+
+  // -------------------------------------------------------------
+  // 6. INSTALLMENT COMMISSIONS & REFUNDS METHODS (v3.0 Sections 22-34)
+  // -------------------------------------------------------------
+  const addInstallmentCommission = (comm: Omit<InstallmentCommission, 'id' | 'commissionCode'> & Partial<InstallmentCommission>): InstallmentCommission => {
+    const newComm: InstallmentCommission = {
+      ...comm,
+      id: `COMM-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      commissionCode: `COM-${Date.now().toString().slice(-6)}`,
+      status: comm.status || 'PENDING',
+      date: comm.date || new Date().toISOString().split('T')[0]
+    };
+    setInstallmentCommissions(prev => [newComm, ...prev]);
+    showToast(`Commission ${newComm.commissionCode} generated for ${comm.salesExecutiveName}`, 'info', 'Commission Generated');
+    logAuditAction('Generated Installment Commission', 'Installments', newComm.commissionCode, undefined, `BDT ${comm.commissionAmount}`);
+    return newComm;
+  };
+
+  const approveInstallmentCommission = (id: string) => {
+    setInstallmentCommissions(prev => prev.map(c => c.id === id ? {
+      ...c,
+      status: 'APPROVED',
+      approvedBy: currentUser.name
+    } : c));
+    showToast('Installment commission approved!', 'success', 'Commission Approved');
+    logAuditAction('Approved Installment Commission', 'Installments', id);
+  };
+
+  const payInstallmentCommission = (id: string, paymentMethod: string) => {
+    const target = installmentCommissions.find(c => c.id === id);
+    if (!target) return;
+
+    setInstallmentCommissions(prev => prev.map(c => c.id === id ? {
+      ...c,
+      status: 'PAID',
+      paidDate: new Date().toISOString().split('T')[0],
+      paymentMethod,
+      voucherNo: `VCH-COM-${Date.now().toString().slice(-5)}`
+    } : c));
+
+    // Double-entry posting for commission payment
+    addJournalEntry({
+      date: new Date().toISOString().split('T')[0],
+      reference: target.commissionCode,
+      description: `Sales Commission Paid to ${target.salesExecutiveName} for Plot ${target.plotNumber}`,
+      lines: [
+        { accountCode: '5030', accountName: 'Sales Commission Expense', debit: target.commissionAmount, credit: 0 },
+        { accountCode: '1020', accountName: 'Cash / Bank Account', debit: 0, credit: target.commissionAmount }
+      ],
+      createdBy: currentUser.name,
+      status: 'Approved'
+    });
+
+    showToast(`Commission of BDT ${target.commissionAmount} paid to ${target.salesExecutiveName}`, 'success', 'Commission Disbursed');
+    logAuditAction('Paid Installment Commission', 'Installments', target.commissionCode, undefined, `BDT ${target.commissionAmount}`);
+  };
+
+  const refundInstallmentCommission = (refund: Omit<CommissionRefund, 'id' | 'refundCode'>): CommissionRefund => {
+    const newRef: CommissionRefund = {
+      ...refund,
+      id: `COM-REF-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      refundCode: `CRF-${Date.now().toString().slice(-6)}`,
+      status: 'COMPLETED',
+      approvedBy: currentUser.name
+    };
+
+    setCommissionRefunds(prev => [newRef, ...prev]);
+
+    // Reverse original commission status
+    setInstallmentCommissions(prev => prev.map(c => c.id === refund.originalCommissionId ? {
+      ...c,
+      status: 'REVERSED',
+      remarks: `Refunded via ${newRef.refundCode}: ${refund.reason}`
+    } : c));
+
+    // Post double entry reversal
+    addJournalEntry({
+      date: new Date().toISOString().split('T')[0],
+      reference: newRef.refundCode,
+      description: `Commission Reversal from ${refund.salesExecutiveName} - ${refund.reason}`,
+      lines: [
+        { accountCode: '1020', accountName: 'Cash / Bank Account', debit: refund.refundAmount, credit: 0 },
+        { accountCode: '5030', accountName: 'Sales Commission Expense', debit: 0, credit: refund.refundAmount }
+      ],
+      createdBy: currentUser.name,
+      status: 'Approved'
+    });
+
+    showToast(`Commission reversal ${newRef.refundCode} processed!`, 'warning', 'Commission Refunded');
+    logAuditAction('Commission Refund', 'Installments', newRef.refundCode, undefined, `BDT ${refund.refundAmount}`);
+    return newRef;
+  };
+
+  const addBookingCommission = (comm: Omit<BookingCommission, 'id' | 'bookingCommissionCode'>): BookingCommission => {
+    const newComm: BookingCommission = {
+      ...comm,
+      id: `BCOM-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      bookingCommissionCode: `BCOM-${Date.now().toString().slice(-6)}`,
+      status: 'APPROVED',
+      approvedBy: currentUser.name
+    };
+    setBookingCommissions(prev => [newComm, ...prev]);
+    showToast(`Booking commission ${newComm.bookingCommissionCode} created!`, 'success', 'Booking Commission');
+    logAuditAction('Created Booking Commission', 'Installments', newComm.bookingCommissionCode, undefined, `BDT ${comm.commissionAmount}`);
+    return newComm;
+  };
+
+  const refundBookingCommission = (refund: Omit<BookingCommissionRefund, 'id' | 'refundCode'>): BookingCommissionRefund => {
+    const newRef: BookingCommissionRefund = {
+      ...refund,
+      id: `BCOM-REF-${Date.now()}`,
+      refundCode: `BCRF-${Date.now().toString().slice(-6)}`,
+      status: 'COMPLETED',
+      approvedBy: currentUser.name
+    };
+    setBookingCommissionRefunds(prev => [newRef, ...prev]);
+    showToast(`Booking commission refund ${newRef.refundCode} processed!`, 'info', 'Booking Commission Refund');
+    logAuditAction('Booking Commission Refund', 'Installments', newRef.refundCode, undefined, `BDT ${refund.refundAmount}`);
+    return newRef;
+  };
+
+  const requestInstallmentRefund = (ref: Omit<InstallmentRefund, 'id' | 'refundCode' | 'status'>): InstallmentRefund => {
+    const newRef: InstallmentRefund = {
+      ...ref,
+      id: `INST-REF-${Date.now()}`,
+      refundCode: `IRF-${Date.now().toString().slice(-6)}`,
+      status: 'REQUESTED'
+    };
+    setInstallmentRefunds(prev => [newRef, ...prev]);
+    showToast(`Installment refund request ${newRef.refundCode} submitted!`, 'info', 'Refund Requested');
+    logAuditAction('Requested Installment Refund', 'Installments', newRef.refundCode, undefined, `Net: BDT ${ref.netRefundAmount}`);
+    return newRef;
+  };
+
+  const approveInstallmentRefund = (id: string) => {
+    const target = installmentRefunds.find(r => r.id === id);
+    if (!target) return;
+
+    setInstallmentRefunds(prev => prev.map(r => r.id === id ? {
+      ...r,
+      status: 'REFUNDED',
+      approvedBy: currentUser.name
+    } : r));
+
+    // Double-entry accounting reversal for customer refund
+    addJournalEntry({
+      date: new Date().toISOString().split('T')[0],
+      reference: target.refundCode,
+      description: `Installment Refund to ${target.customerName} for Plot ${target.plotNumber}`,
+      lines: [
+        { accountCode: '4010', accountName: 'Plot Sales Revenue (Reversal)', debit: target.refundAmount, credit: 0 },
+        { accountCode: '1020', accountName: 'Bank / Cash Account', debit: 0, credit: target.netRefundAmount },
+        ...(target.deductionPenalty > 0 ? [{ accountCode: '4090', accountName: 'Cancellation Penalty Income', debit: 0, credit: target.deductionPenalty }] : [])
+      ],
+      createdBy: currentUser.name,
+      status: 'Approved'
+    });
+
+    showToast(`Installment refund ${target.refundCode} approved and disbursed!`, 'success', 'Refund Disbursed');
+    logAuditAction('Approved Installment Refund', 'Installments', target.refundCode, undefined, `Net: BDT ${target.netRefundAmount}`);
+  };
+
   return (
     <ERPContext.Provider value={{
       currentTab,
@@ -2008,7 +2400,24 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       capitalAccounts,
       capitalTransactions,
       addCapitalAccount,
-      addCapitalTransaction
+      addCapitalTransaction,
+      directorPlotDistributions,
+      clientPlotDistributions,
+      addDirectorPlotDistribution,
+      addClientPlotDistribution,
+      installmentCommissions,
+      commissionRefunds,
+      bookingCommissions,
+      bookingCommissionRefunds,
+      installmentRefunds,
+      addInstallmentCommission,
+      approveInstallmentCommission,
+      payInstallmentCommission,
+      refundInstallmentCommission,
+      addBookingCommission,
+      refundBookingCommission,
+      requestInstallmentRefund,
+      approveInstallmentRefund
     }}>
       {children}
     </ERPContext.Provider>

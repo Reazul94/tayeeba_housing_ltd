@@ -25,14 +25,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
     { id: 'crm', label: isBn ? "সিআরএম ও সেলস" : "CRM & Sales", icon: Users },
     { id: 'projects', label: isBn ? "প্রজেক্টসমূহ" : "Projects", icon: Building },
     { id: 'customers', label: isBn ? "কাস্টমারসমূহ" : "Customers", icon: UserSquare2 },
-    { id: 'inventory', label: isBn ? "প্লটস ইনভেন্টরি" : "Plots", icon: MapPin },
+    { id: 'plots', label: isBn ? "প্লটস ইনভেন্টরি" : "Plots", icon: MapPin },
     { id: 'bookings', label: isBn ? "বুকিং ম্যানেজমেন্ট" : "Bookings", icon: FileCheck },
     { id: 'collections', label: isBn ? "কালেকশন ও রসিদ" : "Collections", icon: CreditCard },
     { id: 'installments', label: isBn ? "কিস্তি (Installments)" : "Installments", icon: Clock },
-    { id: 'accounting', label: isBn ? "একাউন্টস ও ক্যাশ বুক" : "Accounts", icon: Calculator },
+    { id: 'accounts', label: isBn ? "একাউন্টস ও ক্যাশ বুক" : "Accounts", icon: Calculator },
     { id: 'bank', label: isBn ? "ব্যাংক ম্যানেজমেন্ট" : "Bank", icon: Landmark },
     { id: 'capital', label: isBn ? "ক্যাপিটাল ও ইকুইটি" : "Capital", icon: Award },
-    { id: 'accounting-ledger', label: isBn ? "ডাবল-এন্ট্রি একাউন্টিং" : "Accounting", icon: BookOpen },
+    { id: 'accounting', label: isBn ? "ডাবল-এন্ট্রি একাউন্টিং" : "Accounting", icon: BookOpen },
     { id: 'meetings', label: isBn ? "ইসি ও বোর্ড মিটিং" : "Meetings", icon: CalendarCheck },
     { id: 'hr', label: isBn ? "এইচআর ও পে-রোল" : "HR & Payroll", icon: UserCheck },
     { id: 'land', label: isBn ? "জমি ক্রয় (Land)" : "Land", icon: Map },
@@ -45,14 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
   ];
 
   const handleSelectTab = (tabId: string) => {
-    // Map accounting-ledger to accounting tab if selected
-    if (tabId === 'accounting-ledger') {
-      setCurrentTab('accounting');
-    } else if (tabId === 'customers') {
-      setCurrentTab('crm');
-    } else {
-      setCurrentTab(tabId);
-    }
+    setCurrentTab(tabId);
     if (onCloseMobile) onCloseMobile();
   };
 
@@ -96,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
         <div className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
           {navigationItems.map(item => {
             const Icon = item.icon;
-            const isActive = currentTab === item.id || (item.id === 'crm' && currentTab === 'customers');
+            const isActive = currentTab === item.id || (item.id === 'plots' && currentTab === 'inventory');
 
             return (
               <button
@@ -130,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
               <span>LAN ONLINE</span>
             </div>
             <div className="text-[10px] text-slate-400 font-mono pt-1 border-t border-slate-800">
-              v2.7.0 | TAYEEBA ERP
+              v3.0.0 | TAYEEBA ERP
             </div>
           </div>
         )}

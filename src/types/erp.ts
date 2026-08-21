@@ -627,3 +627,169 @@ export interface CapitalLedger {
   transactions: CapitalTransaction[];
 }
 
+// ============================================================
+// PLOT DISTRIBUTIONS (Sections 16-21)
+// ============================================================
+export interface DirectorPlotDistribution {
+  id: string;
+  directorName: string;
+  directorCode?: string;
+  projectId: string;
+  projectName: string;
+  block: string;
+  plotNumber: string;
+  plotSize: number;
+  sizeUnit: 'Decimal' | 'Katha' | 'Bigha' | 'Acre' | 'SqFt';
+  bookingDate: string;
+  customerName?: string;
+  bookingValue: number;
+  paidAmount: number;
+  dueAmount: number;
+  status: 'Allotted' | 'Booked' | 'Sold' | 'Transferred' | 'Reserved';
+  remarks?: string;
+}
+
+export interface ClientPlotDistribution {
+  id: string;
+  clientName: string;
+  customerId: string;
+  phone: string;
+  projectId: string;
+  projectName: string;
+  block: string;
+  plotNumber: string;
+  plotSize: number;
+  sizeUnit: 'Decimal' | 'Katha' | 'Bigha' | 'Acre' | 'SqFt';
+  bookingDate: string;
+  bookingValue: number;
+  paidAmount: number;
+  dueAmount: number;
+  installmentStatus: 'REGULAR' | 'OVERDUE' | 'COMPLETED' | 'DEFAULTED';
+  salesExecutive: string;
+  bookingStatus: 'ACTIVE' | 'CONFIRMED' | 'TRANSFERRED' | 'CANCELLED';
+  remarks?: string;
+}
+
+// ============================================================
+// INSTALLMENT COMMISSIONS & REFUNDS (Sections 22-34)
+// ============================================================
+export interface InstallmentCommission {
+  id: string;
+  commissionCode: string;
+  commissionType: 'ONE_TIME' | 'MONTHLY';
+  customerId: string;
+  customerName: string;
+  projectId: string;
+  projectName: string;
+  plotNumber: string;
+  bookingId: string;
+  bookingNo: string;
+  installmentNo?: number;
+  salesExecutiveId: string;
+  salesExecutiveName: string;
+  collectionAmount: number;
+  commissionRate: number; // e.g. 2% or 5000 BDT
+  rateType: 'PERCENTAGE' | 'FIXED';
+  commissionAmount: number;
+  month?: string;
+  year?: number;
+  date: string;
+  status: 'PENDING' | 'APPROVED' | 'PAID' | 'REVERSED';
+  approvedBy?: string;
+  paidDate?: string;
+  paymentMethod?: string;
+  voucherNo?: string;
+  remarks?: string;
+}
+
+export interface CommissionRefund {
+  id: string;
+  refundCode: string;
+  originalCommissionId: string;
+  commissionCode: string;
+  commissionType: 'ONE_TIME' | 'MONTHLY' | 'BOOKING';
+  salesExecutiveId: string;
+  salesExecutiveName: string;
+  customerId: string;
+  customerName: string;
+  projectId: string;
+  projectName: string;
+  plotNumber: string;
+  originalAmount: number;
+  refundAmount: number;
+  reason: string;
+  date: string;
+  status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED';
+  approvedBy?: string;
+  journalEntryId?: string;
+  remarks?: string;
+}
+
+export interface BookingCommission {
+  id: string;
+  bookingCommissionCode: string;
+  bookingId: string;
+  bookingNo: string;
+  customerId: string;
+  customerName: string;
+  projectId: string;
+  projectName: string;
+  plotNumber: string;
+  salesExecutiveId: string;
+  salesExecutiveName: string;
+  bookingAmount: number;
+  totalSaleValue: number;
+  commissionRate: number;
+  rateType: 'PERCENTAGE' | 'FIXED';
+  commissionAmount: number;
+  date: string;
+  status: 'PENDING' | 'APPROVED' | 'PAID' | 'REVERSED';
+  approvedBy?: string;
+  paidDate?: string;
+  remarks?: string;
+}
+
+export interface BookingCommissionRefund {
+  id: string;
+  refundCode: string;
+  originalBookingCommissionId: string;
+  bookingCommissionCode: string;
+  bookingNo: string;
+  customerId: string;
+  customerName: string;
+  salesExecutiveName: string;
+  originalAmount: number;
+  refundAmount: number;
+  reason: string;
+  date: string;
+  status: 'PENDING' | 'APPROVED' | 'COMPLETED';
+  approvedBy?: string;
+  remarks?: string;
+}
+
+export interface InstallmentRefund {
+  id: string;
+  refundCode: string;
+  originalReceiptId: string;
+  receiptNumber: string;
+  customerId: string;
+  customerName: string;
+  projectId: string;
+  projectName: string;
+  plotNumber: string;
+  installmentNo: number;
+  originalAmount: number;
+  refundAmount: number;
+  deductionPenalty: number;
+  netRefundAmount: number;
+  reason: string;
+  paymentSource: 'Bank' | 'Cash';
+  bankAccountId?: string;
+  refundDate: string;
+  requestedBy: string;
+  approvedBy?: string;
+  status: 'REQUESTED' | 'REVIEWED' | 'APPROVED' | 'REFUNDED' | 'REJECTED';
+  journalEntryId?: string;
+  remarks?: string;
+}
+

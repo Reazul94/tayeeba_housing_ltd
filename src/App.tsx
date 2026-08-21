@@ -10,11 +10,14 @@ import { ConfirmDialogModal, ToastContainer } from './components/common/ModernDi
 
 import { CEODashboard } from './components/dashboard/CEODashboard';
 import { ProjectManager } from './components/projects/ProjectManager';
+import { PlotManager } from './components/plots/PlotManager';
 import { PlotInventoryMap } from './components/inventory/PlotInventoryMap';
 import { CRMManager } from './components/crm/CRMManager';
 import { BookingWizard } from './components/bookings/BookingWizard';
+import { InstallmentManager } from './components/installments/InstallmentManager';
 import { CollectionManager } from './components/collections/CollectionManager';
 import { AccountsManager } from './components/accounting/AccountsManager';
+import { AccountingManager } from './components/accounting/AccountingManager';
 import { BankManager } from './components/bank/BankManager';
 import { MeetingManager } from './components/meetings/MeetingManager';
 import { CapitalManager } from './components/capital/CapitalManager';
@@ -75,17 +78,22 @@ const ERPContent: React.FC = () => {
         return <CEODashboard />;
       case 'projects':
         return <ProjectManager />;
+      case 'plots':
       case 'inventory':
-        return <PlotInventoryMap />;
+        return <PlotManager />;
       case 'crm':
+      case 'customers':
         return <CRMManager />;
       case 'bookings':
-      case 'installments':
         return <BookingWizard />;
+      case 'installments':
+        return <InstallmentManager />;
       case 'collections':
         return <CollectionManager />;
-      case 'accounting':
+      case 'accounts':
         return <AccountsManager />;
+      case 'accounting':
+        return <AccountingManager />;
       case 'bank':
         return <BankManager />;
       case 'meetings':

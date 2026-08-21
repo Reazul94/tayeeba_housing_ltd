@@ -1514,4 +1514,102 @@ router.post('/capital/transaction', authenticate, requireModule('capital'), asyn
   }
 });
 
+// ============================================================
+// 6. PLOT DISTRIBUTIONS (v3.0 Sections 16-21)
+// ============================================================
+router.get('/plots/director-distribution', authenticate, requireModule('plots'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM director_plot_distribution ORDER BY booking_date DESC`);
+    return res.json({ distributions: result.rows });
+  } catch (err) {
+    console.error('Director plot distribution error:', err.message);
+    return res.status(500).json({ error: 'Failed to load director distributions.' });
+  }
+});
+
+router.post('/plots/director-distribution', authenticate, requireModule('plots'), async (req, res) => {
+  try {
+    const { directorName, directorCode, projectId, projectName, block, plotNumber, plotSize, sizeUnit, bookingDate, customerName, bookingValue, paidAmount, dueAmount, status, remarks } = req.body;
+    const result = await query(
+      `INSERT INTO director_plot_distribution (director_name, director_code, project_id, project_name, block, plot_number, plot_size, size_unit, booking_date, customer_name, booking_value, paid_amount, due_amount, status, remarks)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+      [directorName, directorCode, projectId, projectName, block, plotNumber, plotSize, sizeUnit || 'Katha', bookingDate || new Date().toISOString().split('T')[0], customerName, bookingValue, paidAmount, dueAmount, status || 'Allotted', remarks]
+    );
+    return res.status(201).json({ distribution: result.rows[0] });
+  } catch (err) {
+    console.error('Create director distribution error:', err.message);
+    return res.status(500).json({ error: 'Failed to record director distribution.' });
+  }
+});
+
+router.get('/plots/client-distribution', authenticate, requireModule('plots'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM client_plot_distribution ORDER BY booking_date DESC`);
+    return res.json({ distributions: result.rows });
+  } catch (err) {
+    console.error('Client plot distribution error:', err.message);
+    return res.status(500).json({ error: 'Failed to load client distributions.' });
+  }
+});
+
+router.post('/plots/client-distribution', authenticate, requireModule('plots'), async (req, res) => {
+  try {
+    const { clientName, customerId, phone, projectId, projectName, block, plotNumber, plotSize, sizeUnit, bookingDate, bookingValue, paidAmount, dueAmount, installmentStatus, salesExecutive, bookingStatus, remarks } = req.body;
+    const result = await query(
+      `INSERT INTO client_plot_distribution (client_name, customer_id, phone, project_id, project_name, block, plot_number, plot_size, size_unit, booking_date, booking_value, paid_amount, due_amount, installment_status, sales_executive, booking_status, remarks)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *`,
+      [clientName, customerId, phone, projectId, projectName, block, plotNumber, plotSize, sizeUnit || 'Katha', bookingDate || new Date().toISOString().split('T')[0], bookingValue, paidAmount, dueAmount, installmentStatus || 'REGULAR', salesExecutive, bookingStatus || 'ACTIVE', remarks]
+    );
+    return res.status(201).json({ distribution: result.rows[0] });
+  } catch (err) {
+    console.error('Create client distribution error:', err.message);
+    return res.status(500).json({ error: 'Failed to record client distribution.' });
+  }
+});
+
+// ============================================================
+// 7. INSTALLMENT COMMISSIONS & REFUNDS (v3.0 Sections 22-34)
+// ============================================================
+router.get('/installments/commission', authenticate, requireModule('installments'), async (req, res) => {
+  try {
+    const comms = await query(`SELECT * FROM installment_commission ORDER BY date DESC`);
+    const refunds = await query(`SELECT * FROM commission_refund ORDER BY date DESC`);
+    return res.json({ commissions: comms.rows, refunds: refunds.rows });
+  } catch (err) {
+    console.error('Get installment commission error:', err.message);
+    return res.status(500).json({ error: 'Failed to load commissions.' });
+  }
+});
+
+router.post('/installments/commission', authenticate, requireModule('installments'), async (req, res) => {
+  try {
+    const { commissionCode, commissionType, customerId, customerName, projectId, projectName, plotNumber, bookingId, bookingNo, installmentNo, salesExecutiveId, salesExecutiveName, collectionAmount, commissionRate, rateType, commissionAmount, month, year, date, remarks } = req.body;
+    const result = await query(
+      `INSERT INTO installment_commission (commission_code, commission_type, customer_id, customer_name, project_id, project_name, plot_number, booking_id, booking_no, installment_no, sales_executive_id, sales_executive_name, collection_amount, commission_rate, rate_type, commission_amount, month, year, date, remarks)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+      [commissionCode, commissionType || 'ONE_TIME', customerId, customerName, projectId, projectName, plotNumber, bookingId, bookingNo, installmentNo, salesExecutiveId, salesExecutiveName, collectionAmount, commissionRate, rateType || 'PERCENTAGE', commissionAmount, month, year, date || new Date().toISOString().split('T')[0], remarks]
+    );
+    return res.status(201).json({ commission: result.rows[0] });
+  } catch (err) {
+    console.error('Create commission error:', err.message);
+    return res.status(500).json({ error: 'Failed to record installment commission.' });
+  }
+});
+
+router.post('/installments/refund', authenticate, requireModule('installments'), async (req, res) => {
+  try {
+    const { refundCode, originalReceiptId, receiptNumber, customerName, projectName, plotNumber, installmentNo, originalAmount, refundAmount, deductionPenalty, netRefundAmount, reason, paymentSource, bankAccountId, refundDate, requestedBy } = req.body;
+    const result = await query(
+      `INSERT INTO installment_refund (refund_code, original_receipt_id, receipt_number, customer_name, project_name, plot_number, installment_no, original_amount, refund_amount, deduction_penalty, net_refund_amount, reason, payment_source, bank_account_id, refund_date, requested_by, approved_by, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 'APPROVED') RETURNING *`,
+      [refundCode, originalReceiptId, receiptNumber, customerName, projectName, plotNumber, installmentNo || 1, originalAmount, refundAmount, deductionPenalty || 0, netRefundAmount, reason, paymentSource || 'Bank', bankAccountId || null, refundDate || new Date().toISOString().split('T')[0], requestedBy, req.user?.displayName || 'SYSTEM']
+    );
+    return res.status(201).json({ refund: result.rows[0] });
+  } catch (err) {
+    console.error('Create installment refund error:', err.message);
+    return res.status(500).json({ error: 'Failed to record installment refund.' });
+  }
+});
+
 export default router;
+
