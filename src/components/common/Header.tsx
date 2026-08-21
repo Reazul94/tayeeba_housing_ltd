@@ -6,6 +6,7 @@ import {
   Search, Bell, Globe, ChevronDown, 
   X, User, LogOut, Menu, CheckCircle2, Shield
 } from 'lucide-react';
+import { ThemeSwitcher } from './ThemeSwitcher';
 
 interface HeaderProps {
   onToggleMobileSidebar?: () => void;
@@ -132,6 +133,9 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
               </div>
             )}
           </div>
+
+          {/* Theme Switcher Button [Section 93] */}
+          <ThemeSwitcher />
 
           {/* Language Selector */}
           <button

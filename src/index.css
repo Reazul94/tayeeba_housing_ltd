@@ -3,25 +3,61 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-primary: #059669;
+    --color-primary-dark: #064e3b;
+    --color-secondary: #c5a059;
+    --color-accent: #10b981;
+    --color-background: #f1f4ee;
+    --color-surface: #ffffff;
+    --color-surface-secondary: #f8faf7;
+    --color-text: #0f172a;
+    --color-text-muted: #64748b;
+    --color-border: #e2e8f0;
+    --sidebar-bg: #06231a;
+    --header-bg: rgba(255, 255, 255, 0.95);
+    --card-bg: #ffffff;
+  }
+
   body {
-    @apply bg-slate-900 text-slate-100 antialiased;
+    @apply antialiased;
     font-family: 'Inter', 'Hind Siliguri', sans-serif;
-    background-color: #06231a;
+    background-color: var(--color-background);
+    color: var(--color-text);
   }
 }
 
 /* ============================================================
-   TAYEEBA HOUSING LTD. LUXURY REAL ESTATE ERP THEME
+   TAYEEBA HOUSING LTD. LUXURY REAL ESTATE ERP THEME & APPEARANCE
    ============================================================ */
 
 .erp-main-bg {
-  background-color: #f1f4ee;
+  background-color: var(--color-background);
+  transition: background-color 0.2s ease;
+}
+
+.dark .erp-main-bg {
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(27, 122, 84, 0.04) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(197, 160, 89, 0.05) 0%, transparent 40%),
-    linear-gradient(to right, rgba(27, 122, 84, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(27, 122, 84, 0.02) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+    radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(251, 191, 36, 0.05) 0%, transparent 40%);
+}
+
+/* Density Compact Mode */
+.density-compact table td, 
+.density-compact table th {
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+}
+
+.density-compact button {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+}
+
+/* Reduced Motion Mode */
+.reduced-motion * {
+  animation: none !important;
+  transition: none !important;
 }
 
 /* Top Hero Panoramic Landscape Header */

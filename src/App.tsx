@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ERPProvider, useERP } from './context/ERPContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Header } from './components/common/Header';
 import { Sidebar } from './components/common/Sidebar';
 import { Login } from './components/auth/Login';
@@ -156,8 +157,10 @@ const ERPContent: React.FC = () => {
 
 export default function App() {
   return (
-    <ERPProvider>
-      <ERPContent />
-    </ERPProvider>
+    <ThemeProvider>
+      <ERPProvider>
+        <ERPContent />
+      </ERPProvider>
+    </ThemeProvider>
   );
 }

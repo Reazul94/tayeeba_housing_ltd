@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useERP } from '../../context/ERPContext';
 import { ServerMonitor } from './ServerMonitor';
+import { AppearanceSettings } from './AppearanceSettings';
 import { 
   Settings, Shield, Building2, Server, Check, Lock, Save, Edit3, 
-  UserCheck, Plus, Trash2, Sliders, Database, RotateCcw, Sparkles, AlertTriangle 
+  UserCheck, Plus, Trash2, Sliders, Database, RotateCcw, Sparkles, AlertTriangle, Palette
 } from 'lucide-react';
 
 interface RolePermission {
@@ -23,7 +24,7 @@ export const SettingsManager: React.FC = () => {
   const { currentUser, language, showToast, showConfirm, resetAllDataToCleanSlate } = useERP();
   const isBn = language === 'bn';
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'lan' | 'rbac' | 'database'>('database');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'profile' | 'lan' | 'rbac' | 'database'>('appearance');
 
   const [companyName, setCompanyName] = useState('TAYEEBA HOUSING LTD.');
   const [address, setAddress] = useState('Gulshan Tower (Level 8), Plot 44, Gulshan-2, Dhaka-1212');
@@ -150,9 +151,13 @@ export const SettingsManager: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap gap-1.5 bg-slate-900 p-1.5 rounded-xl border border-slate-700 w-full sm:w-auto">
+          <button onClick={() => setActiveTab('appearance')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${activeTab === 'appearance' ? 'bg-[#059669] text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
+            <Palette className="w-3.5 h-3.5" />
+            <span>Appearance &amp; Themes</span>
+          </button>
           <button onClick={() => setActiveTab('database')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${activeTab === 'database' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>
             <Database className="w-3.5 h-3.5" />
-            <span>Database & Clean Slate (v2.7)</span>
+            <span>Database &amp; Clean Slate (v3.0)</span>
           </button>
           <button onClick={() => setActiveTab('rbac')} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${activeTab === 'rbac' ? 'bg-tayeeba-600 text-white' : 'text-slate-400 hover:text-white'}`}>
             <Shield className="w-3.5 h-3.5" />
@@ -173,10 +178,12 @@ export const SettingsManager: React.FC = () => {
         <div className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 p-3.5 rounded-xl text-xs font-bold flex items-center justify-between animate-fadeIn">
           <span className="flex items-center space-x-2">
             <Check className="w-4 h-4 text-emerald-400" />
-            <span>Permissions and System Settings successfully updated & saved to central storage!</span>
+            <span>Permissions and System Settings successfully updated &amp; saved to central storage!</span>
           </span>
         </div>
       )}
+
+      {activeTab === 'appearance' && <AppearanceSettings />}
 
       {activeTab === 'lan' && <ServerMonitor />}
 
