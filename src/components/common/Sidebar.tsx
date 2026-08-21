@@ -20,9 +20,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
 
   const menuSections = [
     {
-      title: isBn ? "এক্সিকিউটিভ ও প্রজেক্ট" : "Executive & Projects",
+      title: isBn ? "এক্সিকিউটিভ ও মিটিং" : "Executive & Governance",
       items: [
         { id: 'dashboard', label: isBn ? "ড্যাশবোর্ড" : "CEO Dashboard", icon: LayoutDashboard },
+        { id: 'meetings', label: isBn ? "ইসি ও বোর্ড মিটিং" : "EC & Board Meetings", icon: CalendarCheck },
         { id: 'projects', label: isBn ? "প্রজেক্ট ম্যানেজমেন্ট" : "Projects", icon: Building },
         { id: 'inventory', label: isBn ? "প্লট ইনভেন্টরি ম্যাপ" : "Plot Map & Inventory", icon: MapPin },
       ]
@@ -39,9 +40,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
       ]
     },
     {
-      title: isBn ? "একাউন্টস ও ফাইন্যান্স" : "Accounts & Finance",
+      title: isBn ? "একাউন্টস, ব্যাংক ও ফান্ড" : "Accounts, Bank & Capital",
       items: [
-        { id: 'accounting', label: isBn ? "ডাবল-এন্ট্রি একাউন্টিং" : "Accounts & Finance", icon: Calculator },
+        { id: 'accounting', label: isBn ? "একাউন্টস ও ক্যাশ বুক" : "Accounts & Cash Operations", icon: Calculator },
+        { id: 'bank', label: isBn ? "ব্যাংক ম্যানেজমেন্ট" : "Bank Management", icon: Landmark },
+        { id: 'capital', label: isBn ? "ক্যাপিটাল ও শেয়ারহোল্ডার" : "Capital & Equity Fund", icon: Award },
         { id: 'expenses', label: isBn ? "খরচ (Expense)" : "Expenses", icon: Receipt },
         { id: 'land', label: isBn ? "জমি ক্রয় (Land)" : "Land Acquisition", icon: Landmark },
         { id: 'vendors', label: isBn ? "ভেন্ডর ও ক্রয়" : "Vendors & Purchases", icon: ShoppingCart },

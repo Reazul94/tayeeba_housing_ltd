@@ -367,3 +367,263 @@ export interface NotificationItem {
   read: boolean;
   linkTab?: string;
 }
+
+// ============================================================
+// ACCOUNTS & CASH BOOK (Sections 128-140)
+// ============================================================
+export interface CashBookTransaction {
+  id: string;
+  voucherNo: string;
+  transactionType: 'RECEIPT' | 'PAYMENT';
+  date: string;
+  particulars: string;
+  accountHead: string;
+  category: string;
+  projectId?: string;
+  projectName?: string;
+  partyName?: string;
+  referenceNo?: string;
+  paymentMethod: 'Cash' | 'Bank Transfer' | 'Cheque' | 'bKash' | 'Nagad' | 'Rocket' | 'Other';
+  debitAmount: number;   // Receipt Amount
+  creditAmount: number;  // Payment Amount
+  runningBalance: number;
+  preparedBy: string;
+  approvedBy?: string;
+  approvalStatus: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+}
+
+// ============================================================
+// BANK MANAGEMENT (Sections 141-145)
+// ============================================================
+export interface BankAccount {
+  id: string;
+  accountCode: string;
+  bankName: string;
+  branchName: string;
+  accountName: string;
+  accountNumber: string;
+  accountType: 'Current' | 'Savings' | 'SND' | 'FDR' | 'Other';
+  currency: string;
+  routingNumber?: string;
+  swiftCode?: string;
+  openingBalance: number;
+  currentBalance: number;
+  isDefault?: boolean;
+  isActive: boolean;
+}
+
+export interface BankTransaction {
+  id: string;
+  bankAccountId: string;
+  bankAccountName?: string;
+  transactionId: string;
+  transactionType: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER' | 'INTEREST' | 'BANK_CHARGE';
+  date: string;
+  particulars: string;
+  referenceNo?: string;
+  chequeNumber?: string;
+  paymentMethod: string;
+  depositAmount: number;
+  withdrawalAmount: number;
+  balanceAfter: number;
+  isReconciled: boolean;
+  reconciledAt?: string;
+  reconciledBy?: string;
+}
+
+export interface BankReconciliation {
+  id: string;
+  reconciliationNo: string;
+  bankAccountId: string;
+  bankAccountName: string;
+  statementDate: string;
+  bookBalance: number;
+  bankStatementBalance: number;
+  differenceAmount: number;
+  status: 'DRAFT' | 'RECONCILED' | 'DISCREPANCY';
+  notes?: string;
+  performedBy: string;
+  approvedBy?: string;
+}
+
+// ============================================================
+// SALARY & DIRECTORS' HONORARIUM (Sections 137-140)
+// ============================================================
+export interface SalarySheet {
+  id: string;
+  sheetCode: string;
+  month: string;
+  year: number;
+  totalStaffCount: number;
+  totalGrossSalary: number;
+  totalDeductions: number;
+  totalNetPayable: number;
+  totalPaidAmount: number;
+  approvalStatus: 'PREPARED' | 'REVIEWED' | 'APPROVED' | 'PAID' | 'CANCELLED';
+  preparedBy: string;
+  approvedBy?: string;
+  paymentDate?: string;
+  paymentMethod?: string;
+  bankAccountId?: string;
+  details?: SalaryDetail[];
+}
+
+export interface SalaryDetail {
+  id: string;
+  salarySheetId: string;
+  employeeId: string;
+  employeeCode: string;
+  employeeName: string;
+  department: string;
+  designation: string;
+  basicSalary: number;
+  houseRent: number;
+  medicalAllowance: number;
+  conveyance: number;
+  bonus: number;
+  overtimeAmount: number;
+  grossSalary: number;
+  providentFund: number;
+  advanceDeduction: number;
+  taxDeduction: number;
+  otherDeductions: number;
+  totalDeductions: number;
+  netPayable: number;
+  paymentStatus: 'UNPAID' | 'PAID' | 'HOLD';
+  paymentDate?: string;
+}
+
+export interface DirectorHonorarium {
+  id: string;
+  honorariumCode: string;
+  directorName: string;
+  directorDesignation: string;
+  month: string;
+  year: number;
+  meetingCount: number;
+  honorariumAmount: number;
+  taxDeduction: number;
+  netAmount: number;
+  approvalStatus: 'PENDING' | 'APPROVED' | 'PAID' | 'REJECTED';
+  voucherNo?: string;
+  paymentDate?: string;
+  paymentMethod?: string;
+  bankAccountId?: string;
+  remarks?: string;
+  approvedBy?: string;
+}
+
+// ============================================================
+// EC & BOARD MEETINGS (Sections 146-152)
+// ============================================================
+export interface MeetingMember {
+  id: string;
+  meetingId?: string;
+  memberName: string;
+  designation: string;
+  roleInMeeting: 'Chairperson' | 'Member' | 'Secretary' | 'Invited Guest' | 'Observer';
+  attendanceStatus: 'PRESENT' | 'ABSENT' | 'LEAVE_OF_ABSENCE' | 'ONLINE';
+}
+
+export interface MeetingAgenda {
+  id: string;
+  meetingId?: string;
+  itemNumber: number;
+  title: string;
+  description?: string;
+  presenter?: string;
+  decisionOutcome?: string;
+}
+
+export interface MeetingActionItem {
+  id: string;
+  meetingId: string;
+  meetingNo?: string;
+  actionCode: string;
+  title: string;
+  description?: string;
+  responsiblePerson: string;
+  department: string;
+  dueDate: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE' | 'CANCELLED';
+  completionDate?: string;
+  remarks?: string;
+}
+
+export interface Meeting {
+  id: string;
+  meetingNo: string;
+  meetingType: 'EC_MEETING' | 'BOARD_MEETING' | 'ANNUAL_GENERAL_MEETING' | 'SPECIAL_MEETING';
+  title: string;
+  meetingDate: string;
+  meetingTime: string;
+  location: string;
+  chairperson: string;
+  secretary: string;
+  status: 'SCHEDULED' | 'HELD' | 'MINUTES_PENDING' | 'APPROVED' | 'CANCELLED';
+  agendaSummary?: string;
+  discussionNotes?: string;
+  resolutionsText?: string;
+  minutesText?: string;
+  minutesStatus: 'DRAFT' | 'REVIEW' | 'APPROVED' | 'PUBLISHED';
+  approvedBy?: string;
+  approvedAt?: string;
+  members: MeetingMember[];
+  agendas: MeetingAgenda[];
+  actionItems: MeetingActionItem[];
+  documents?: { id: string; title: string; url: string }[];
+}
+
+// ============================================================
+// CAPITAL MANAGEMENT (Sections 153-160)
+// ============================================================
+export interface CapitalAccount {
+  id: string;
+  contributorCode: string;
+  contributorName: string;
+  contributorType: 'Director' | 'Shareholder' | 'Sponsor Investor' | 'Institutional Partner';
+  nidOrPassport?: string;
+  phone?: string;
+  email?: string;
+  sharePercentage: number;
+  committedCapital: number;
+  receivedCapital: number;
+  dueCapital: number;
+  status: 'ACTIVE' | 'PAID' | 'DUE' | 'INACTIVE';
+}
+
+export interface CapitalTransaction {
+  id: string;
+  transactionCode: string;
+  capitalAccountId: string;
+  contributorName: string;
+  transactionType: 'CAPITAL_RECEIVED' | 'CAPITAL_ADJUSTMENT' | 'CAPITAL_REFUND' | 'CAPITAL_TRANSFER' | 'DIVIDEND_PAYOUT';
+  date: string;
+  amount: number;
+  paymentMethod: 'Bank Transfer' | 'Cheque' | 'Pay Order' | 'Cash' | 'Other';
+  bankAccountId?: string;
+  bankAccountName?: string;
+  receiptVoucherNo?: string;
+  referenceDetails?: string;
+  projectId?: string;
+  projectName?: string;
+  remarks?: string;
+  status: 'PENDING' | 'APPROVED' | 'REVERSED';
+  approvedBy: string;
+}
+
+export interface CapitalLedger {
+  id: string;
+  capitalAccountId: string;
+  contributorName: string;
+  openingBalance: number;
+  totalContributions: number;
+  totalAdjustments: number;
+  totalRefunds: number;
+  totalReceived: number;
+  outstandingDue: number;
+  closingBalance: number;
+  transactions: CapitalTransaction[];
+}
+

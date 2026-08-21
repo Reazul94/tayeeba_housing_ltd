@@ -1295,4 +1295,223 @@ router.post('/system/reset-data', authenticate, requireModule('settings'), async
   }
 });
 
+// ============================================================
+// ACCOUNTS & CASH BOOK ROUTES (Sections 128-140)
+// ============================================================
+router.get('/accounting/cash-book', authenticate, requireModule('accounts'), async (req, res) => {
+  try {
+    const { fromDate, toDate, type, category } = req.query;
+    let sql = `SELECT * FROM cash_book_transaction WHERE 1=1`;
+    const params = [];
+
+    if (fromDate) {
+      params.push(fromDate);
+      sql += ` AND date >= $${params.length}`;
+    }
+    if (toDate) {
+      params.push(toDate);
+      sql += ` AND date <= $${params.length}`;
+    }
+    if (type) {
+      params.push(type);
+      sql += ` AND transaction_type = $${params.length}`;
+    }
+    if (category) {
+      params.push(category);
+      sql += ` AND category = $${params.length}`;
+    }
+
+    sql += ` ORDER BY date DESC, created_at DESC`;
+    const result = await query(sql, params);
+    return res.json({ transactions: result.rows });
+  } catch (err) {
+    console.error('Cash book fetch error:', err.message);
+    return res.status(500).json({ error: 'Failed to load cash book records.' });
+  }
+});
+
+router.post('/accounting/cash-book', authenticate, requireModule('accounts'), async (req, res) => {
+  try {
+    const { voucherNo, transactionType, date, particulars, accountHead, category, partyName, referenceNo, paymentMethod, debitAmount, creditAmount } = req.body;
+    const result = await query(
+      `INSERT INTO cash_book_transaction 
+       (voucher_no, transaction_type, date, particulars, account_head, category, party_name, reference_no, payment_method, debit_amount, credit_amount, prepared_by, approval_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'APPROVED')
+       RETURNING *`,
+      [
+        voucherNo || `${transactionType === 'RECEIPT' ? 'CR' : 'CPV'}-${Date.now().toString().slice(-6)}`,
+        transactionType,
+        date || new Date().toISOString().split('T')[0],
+        particulars,
+        accountHead,
+        category || 'General',
+        partyName || null,
+        referenceNo || null,
+        paymentMethod || 'Cash',
+        debitAmount || 0,
+        creditAmount || 0,
+        req.user?.displayName || 'SYSTEM'
+      ]
+    );
+    return res.status(201).json({ transaction: result.rows[0] });
+  } catch (err) {
+    console.error('Add cash book transaction error:', err.message);
+    return res.status(500).json({ error: 'Failed to record cash book entry.' });
+  }
+});
+
+// Salary Sheets
+router.get('/accounting/salary', authenticate, requireModule('accounts'), async (req, res) => {
+  try {
+    const sheets = await query(`SELECT * FROM salary_sheet ORDER BY year DESC, month DESC`);
+    const details = await query(`SELECT * FROM salary_detail ORDER BY employee_name ASC`);
+    return res.json({ sheets: sheets.rows, details: details.rows });
+  } catch (err) {
+    console.error('Get salary error:', err.message);
+    return res.status(500).json({ error: 'Failed to load salary sheets.' });
+  }
+});
+
+router.post('/accounting/salary', authenticate, requireModule('accounts'), async (req, res) => {
+  try {
+    const { sheetCode, month, year, totalStaffCount, totalGrossSalary, totalDeductions, totalNetPayable, details } = req.body;
+    const sheetResult = await query(
+      `INSERT INTO salary_sheet (sheet_code, month, year, total_staff_count, total_gross_salary, total_deductions, total_net_payable, prepared_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [sheetCode, month, year, totalStaffCount || 0, totalGrossSalary || 0, totalDeductions || 0, totalNetPayable || 0, req.user?.displayName || 'SYSTEM']
+    );
+    return res.status(201).json({ sheet: sheetResult.rows[0] });
+  } catch (err) {
+    console.error('Create salary sheet error:', err.message);
+    return res.status(500).json({ error: 'Failed to create salary sheet.' });
+  }
+});
+
+// ============================================================
+// BANK MANAGEMENT ROUTES (Sections 141-145)
+// ============================================================
+router.get('/bank/accounts', authenticate, requireModule('bank'), async (req, res) => {
+  try {
+    const result = await query(`SELECT * FROM bank_account WHERE is_active = true ORDER BY is_default DESC, bank_name ASC`);
+    return res.json({ accounts: result.rows });
+  } catch (err) {
+    console.error('Get bank accounts error:', err.message);
+    return res.status(500).json({ error: 'Failed to load bank accounts.' });
+  }
+});
+
+router.post('/bank/accounts', authenticate, requireModule('bank'), async (req, res) => {
+  try {
+    const { accountCode, bankName, branchName, accountName, accountNumber, accountType, currency, routingNumber, openingBalance } = req.body;
+    const result = await query(
+      `INSERT INTO bank_account (account_code, bank_name, branch_name, account_name, account_number, account_type, currency, routing_number, opening_balance, current_balance)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9) RETURNING *`,
+      [accountCode, bankName, branchName, accountName, accountNumber, accountType || 'Current', currency || 'BDT', routingNumber || null, openingBalance || 0]
+    );
+    return res.status(201).json({ account: result.rows[0] });
+  } catch (err) {
+    console.error('Add bank account error:', err.message);
+    return res.status(500).json({ error: 'Failed to create bank account.' });
+  }
+});
+
+router.get('/bank/statement', authenticate, requireModule('bank'), async (req, res) => {
+  try {
+    const { bankAccountId, fromDate, toDate } = req.query;
+    let sql = `SELECT bt.*, ba.bank_name, ba.account_number FROM bank_transaction bt JOIN bank_account ba ON ba.id = bt.bank_account_id WHERE 1=1`;
+    const params = [];
+    if (bankAccountId) {
+      params.push(bankAccountId);
+      sql += ` AND bt.bank_account_id = $${params.length}`;
+    }
+    if (fromDate) {
+      params.push(fromDate);
+      sql += ` AND bt.date >= $${params.length}`;
+    }
+    if (toDate) {
+      params.push(toDate);
+      sql += ` AND bt.date <= $${params.length}`;
+    }
+    sql += ` ORDER BY bt.date DESC, bt.created_at DESC`;
+    const result = await query(sql, params);
+    return res.json({ transactions: result.rows });
+  } catch (err) {
+    console.error('Get bank statement error:', err.message);
+    return res.status(500).json({ error: 'Failed to load bank statement.' });
+  }
+});
+
+// ============================================================
+// EC & BOARD MEETINGS ROUTES (Sections 146-152)
+// ============================================================
+router.get('/meetings', authenticate, requireModule('meetings'), async (req, res) => {
+  try {
+    const meetings = await query(`SELECT * FROM meeting ORDER BY meeting_date DESC, created_at DESC`);
+    const actionItems = await query(`SELECT * FROM meeting_action_item ORDER BY due_date ASC`);
+    return res.json({ meetings: meetings.rows, actionItems: actionItems.rows });
+  } catch (err) {
+    console.error('Get meetings error:', err.message);
+    return res.status(500).json({ error: 'Failed to load meetings.' });
+  }
+});
+
+router.post('/meetings', authenticate, requireModule('meetings'), async (req, res) => {
+  try {
+    const { meetingNo, meetingType, title, meetingDate, meetingTime, location, chairperson, secretary, agendaSummary } = req.body;
+    const result = await query(
+      `INSERT INTO meeting (meeting_no, meeting_type, title, meeting_date, meeting_time, location, chairperson, secretary, agenda_summary, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [meetingNo, meetingType, title, meetingDate, meetingTime, location || 'Boardroom, Dhaka', chairperson, secretary, agendaSummary || '', req.user?.displayName || 'SYSTEM']
+    );
+    return res.status(201).json({ meeting: result.rows[0] });
+  } catch (err) {
+    console.error('Create meeting error:', err.message);
+    return res.status(500).json({ error: 'Failed to schedule meeting.' });
+  }
+});
+
+// ============================================================
+// CAPITAL MANAGEMENT ROUTES (Sections 153-160)
+// ============================================================
+router.get('/capital/accounts', authenticate, requireModule('capital'), async (req, res) => {
+  try {
+    const accounts = await query(`SELECT * FROM capital_account ORDER BY committed_capital DESC`);
+    const transactions = await query(`SELECT * FROM capital_transaction ORDER BY date DESC, created_at DESC`);
+    return res.json({ accounts: accounts.rows, transactions: transactions.rows });
+  } catch (err) {
+    console.error('Get capital error:', err.message);
+    return res.status(500).json({ error: 'Failed to load capital accounts.' });
+  }
+});
+
+router.post('/capital/accounts', authenticate, requireModule('capital'), async (req, res) => {
+  try {
+    const { contributorCode, contributorName, contributorType, nidOrPassport, phone, email, sharePercentage, committedCapital } = req.body;
+    const result = await query(
+      `INSERT INTO capital_account (contributor_code, contributor_name, contributor_type, nid_or_passport, phone, email, share_percentage, committed_capital, received_capital)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0) RETURNING *`,
+      [contributorCode, contributorName, contributorType || 'Shareholder', nidOrPassport || null, phone || null, email || null, sharePercentage || 0, committedCapital || 0]
+    );
+    return res.status(201).json({ account: result.rows[0] });
+  } catch (err) {
+    console.error('Create capital account error:', err.message);
+    return res.status(500).json({ error: 'Failed to create capital account.' });
+  }
+});
+
+router.post('/capital/transaction', authenticate, requireModule('capital'), async (req, res) => {
+  try {
+    const { transactionCode, capitalAccountId, contributorName, transactionType, date, amount, paymentMethod, referenceDetails } = req.body;
+    const result = await query(
+      `INSERT INTO capital_transaction (transaction_code, capital_account_id, contributor_name, transaction_type, date, amount, payment_method, reference_details, approved_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [transactionCode, capitalAccountId, contributorName, transactionType, date || new Date().toISOString().split('T')[0], amount, paymentMethod || 'Bank Transfer', referenceDetails || null, req.user?.displayName || 'SYSTEM']
+    );
+    return res.status(201).json({ transaction: result.rows[0] });
+  } catch (err) {
+    console.error('Create capital transaction error:', err.message);
+    return res.status(500).json({ error: 'Failed to record capital transaction.' });
+  }
+});
+
 export default router;

@@ -14,7 +14,10 @@ import { PlotInventoryMap } from './components/inventory/PlotInventoryMap';
 import { CRMManager } from './components/crm/CRMManager';
 import { BookingWizard } from './components/bookings/BookingWizard';
 import { CollectionManager } from './components/collections/CollectionManager';
-import { AccountingManager } from './components/accounting/AccountingManager';
+import { AccountsManager } from './components/accounting/AccountsManager';
+import { BankManager } from './components/bank/BankManager';
+import { MeetingManager } from './components/meetings/MeetingManager';
+import { CapitalManager } from './components/capital/CapitalManager';
 import { ExpenseManager } from './components/expenses/ExpenseManager';
 import { LandManager } from './components/land/LandManager';
 import { SalesManager } from './components/sales/SalesManager';
@@ -80,7 +83,13 @@ const ERPContent: React.FC = () => {
       case 'collections':
         return <CollectionManager />;
       case 'accounting':
-        return <AccountingManager />;
+        return <AccountsManager />;
+      case 'bank':
+        return <BankManager />;
+      case 'meetings':
+        return <MeetingManager />;
+      case 'capital':
+        return <CapitalManager />;
       case 'expenses':
         return <ExpenseManager />;
       case 'land':

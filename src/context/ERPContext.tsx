@@ -4,7 +4,11 @@ import {
   Installment, PaymentReceipt, Account, JournalEntry, Expense, 
   LandParcel, Commission, Vendor, Employee, Payroll, AuditLog, 
   NotificationItem, UserRole, PlotStatus,
-  UserInfo, UserRoleDefinition, UserDesignation, UserDesignationHistory, UserLoginHistory, ActionPermissionKey
+  UserInfo, UserRoleDefinition, UserDesignation, UserDesignationHistory, UserLoginHistory, ActionPermissionKey,
+  CashBookTransaction, BankAccount, BankTransaction, BankReconciliation,
+  SalarySheet, SalaryDetail, DirectorHonorarium,
+  Meeting, MeetingMember, MeetingAgenda, MeetingActionItem,
+  CapitalAccount, CapitalTransaction, CapitalLedger
 } from '../types/erp';
 import { 
   mockUsers, mockProjects, mockPlots, mockCustomers, mockLeads, 
@@ -165,6 +169,42 @@ interface ERPContextType {
   deleteProject: (projectId: string) => void;
   addPlot: (plot: Omit<Plot, 'id'>) => Plot;
   updatePlot: (plot: Plot) => void;
+
+  // 1. Accounts & Cash Book (Sections 128-140)
+  cashBookTransactions: CashBookTransaction[];
+  addCashTransaction: (tx: Omit<CashBookTransaction, 'id' | 'voucherNo' | 'runningBalance'> & Partial<CashBookTransaction>) => CashBookTransaction;
+  approveCashTransaction: (id: string) => void;
+  salarySheets: SalarySheet[];
+  createSalarySheet: (sheet: Omit<SalarySheet, 'id' | 'sheetCode'>) => SalarySheet;
+  updateSalarySheetStatus: (id: string, status: SalarySheet['approvalStatus']) => void;
+  directorHonorariums: DirectorHonorarium[];
+  addDirectorHonorarium: (hon: Omit<DirectorHonorarium, 'id' | 'honorariumCode'>) => DirectorHonorarium;
+  updateDirectorHonorariumStatus: (id: string, status: DirectorHonorarium['approvalStatus']) => void;
+
+  // 2. Bank Management (Sections 141-145)
+  bankAccounts: BankAccount[];
+  bankTransactions: BankTransaction[];
+  bankReconciliations: BankReconciliation[];
+  addBankAccount: (acc: Omit<BankAccount, 'id' | 'accountCode' | 'currentBalance'> & Partial<BankAccount>) => BankAccount;
+  updateBankAccount: (acc: BankAccount) => void;
+  addBankTransaction: (tx: Omit<BankTransaction, 'id' | 'transactionId' | 'balanceAfter' | 'isReconciled'> & Partial<BankTransaction>) => BankTransaction;
+  reconcileBankTransaction: (txId: string, isReconciled: boolean) => void;
+  createBankReconciliation: (rec: Omit<BankReconciliation, 'id' | 'reconciliationNo'>) => BankReconciliation;
+
+  // 3. EC & Board Meetings (Sections 146-152)
+  meetings: Meeting[];
+  meetingActionItems: MeetingActionItem[];
+  createMeeting: (meeting: Omit<Meeting, 'id' | 'meetingNo'>) => Meeting;
+  updateMeeting: (meeting: Meeting) => void;
+  publishMeetingMinutes: (meetingId: string, minutesText: string, resolutionsText: string) => void;
+  addMeetingActionItem: (item: Omit<MeetingActionItem, 'id' | 'actionCode'>) => MeetingActionItem;
+  updateActionItemStatus: (id: string, status: MeetingActionItem['status']) => void;
+
+  // 4. Capital Management (Sections 153-160)
+  capitalAccounts: CapitalAccount[];
+  capitalTransactions: CapitalTransaction[];
+  addCapitalAccount: (acc: Omit<CapitalAccount, 'id' | 'contributorCode' | 'receivedCapital' | 'dueCapital' | 'status'> & Partial<CapitalAccount>) => CapitalAccount;
+  addCapitalTransaction: (tx: Omit<CapitalTransaction, 'id' | 'transactionCode' | 'status' | 'approvedBy'> & Partial<CapitalTransaction>) => CapitalTransaction;
 
   // Clean Slate & Version Upgrade
   resetAllDataToCleanSlate: () => Promise<void>;
@@ -376,6 +416,97 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
     try {
       const saved = localStorage.getItem('thl_audit_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  // 1. Cash Book State
+  const [cashBookTransactions, setCashBookTransactions] = useState<CashBookTransaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_cash_book');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  // 2. Bank Management State
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_bank_accounts');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'BA-001',
+          accountCode: 'BA-IBBL-01',
+          bankName: 'Islami Bank Bangladesh Ltd.',
+          branchName: 'Gulshan Branch, Dhaka',
+          accountName: 'Tayeeba Housing Ltd.',
+          accountNumber: '2050213010045890',
+          accountType: 'Current',
+          currency: 'BDT',
+          routingNumber: '125261485',
+          openingBalance: 0,
+          currentBalance: 0,
+          isDefault: true,
+          isActive: true
+        }
+      ];
+    } catch (e) { return []; }
+  });
+
+  const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_bank_transactions');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  const [bankReconciliations, setBankReconciliations] = useState<BankReconciliation[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_bank_reconciliations');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  // 3. Salary & Director Honorarium State
+  const [salarySheets, setSalarySheets] = useState<SalarySheet[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_salary_sheets');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  const [directorHonorariums, setDirectorHonorariums] = useState<DirectorHonorarium[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_director_honorariums');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  // 4. Meetings State
+  const [meetings, setMeetings] = useState<Meeting[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_meetings');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  const [meetingActionItems, setMeetingActionItems] = useState<MeetingActionItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_meeting_action_items');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  // 5. Capital Management State
+  const [capitalAccounts, setCapitalAccounts] = useState<CapitalAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_capital_accounts');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) { return []; }
+  });
+
+  const [capitalTransactions, setCapitalTransactions] = useState<CapitalTransaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('thl_capital_transactions');
       return saved ? JSON.parse(saved) : [];
     } catch (e) { return []; }
   });
@@ -1406,6 +1537,376 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Plot '${plot.plotNumber}' updated.`, 'success', 'Plot Updated');
   };
 
+  // -------------------------------------------------------------
+  // 1. ACCOUNTS & CASH BOOK METHODS (Sections 128-140)
+  // -------------------------------------------------------------
+  const addCashTransaction = (tx: Omit<CashBookTransaction, 'id' | 'voucherNo' | 'runningBalance'> & Partial<CashBookTransaction>): CashBookTransaction => {
+    const isReceipt = tx.transactionType === 'RECEIPT';
+    const debit = isReceipt ? (tx.debitAmount || 0) : 0;
+    const credit = !isReceipt ? (tx.creditAmount || 0) : 0;
+    
+    const prevBalance = cashBookTransactions.length > 0 ? cashBookTransactions[0].runningBalance : 0;
+    const newRunningBalance = prevBalance + debit - credit;
+
+    const newTx: CashBookTransaction = {
+      id: `CB-TX-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      voucherNo: tx.voucherNo || (isReceipt ? `CR-${Date.now().toString().slice(-6)}` : `CPV-${Date.now().toString().slice(-6)}`),
+      transactionType: tx.transactionType || 'RECEIPT',
+      date: tx.date || new Date().toISOString().split('T')[0],
+      particulars: tx.particulars || 'Cash Transaction',
+      accountHead: tx.accountHead || (isReceipt ? 'Customer Receipts' : 'Office Expenses'),
+      category: tx.category || 'General',
+      projectId: tx.projectId,
+      projectName: tx.projectName,
+      partyName: tx.partyName,
+      referenceNo: tx.referenceNo,
+      paymentMethod: tx.paymentMethod || 'Cash',
+      debitAmount: debit,
+      creditAmount: credit,
+      runningBalance: newRunningBalance,
+      preparedBy: currentUser.name,
+      approvedBy: tx.approvedBy || currentUser.name,
+      approvalStatus: tx.approvalStatus || 'APPROVED'
+    };
+
+    setCashBookTransactions(prev => [newTx, ...prev]);
+
+    if (newTx.approvalStatus === 'APPROVED') {
+      const cashAcc = '1010';
+      const contraAcc = isReceipt ? '4010' : '5010';
+      addJournalEntry({
+        date: newTx.date,
+        reference: newTx.voucherNo,
+        description: `Cash Book [${newTx.transactionType}]: ${newTx.particulars} (${newTx.category})`,
+        lines: isReceipt ? [
+          { accountCode: cashAcc, accountName: 'Cash in Hand', debit: debit, credit: 0 },
+          { accountCode: contraAcc, accountName: newTx.accountHead || 'General Receipts', debit: 0, credit: debit }
+        ] : [
+          { accountCode: contraAcc, accountName: newTx.accountHead || 'General Expenses', debit: credit, credit: 0 },
+          { accountCode: cashAcc, accountName: 'Cash in Hand', debit: 0, credit: credit }
+        ],
+        createdBy: currentUser.name,
+        status: 'Approved'
+      });
+    }
+
+    showToast(`Cash ${isReceipt ? 'Receipt' : 'Payment'} ${newTx.voucherNo} posted successfully!`, 'success', 'Cash Book Updated');
+    logAuditAction(`Cash ${newTx.transactionType}`, 'Accounts', newTx.voucherNo, undefined, `${newTx.particulars} - BDT ${debit || credit}`);
+    return newTx;
+  };
+
+  const approveCashTransaction = (id: string) => {
+    setCashBookTransactions(prev => prev.map(t => t.id === id ? { ...t, approvalStatus: 'APPROVED', approvedBy: currentUser.name } : t));
+    showToast('Transaction approved and reconciled into ledger.', 'success', 'Approved');
+  };
+
+  const createSalarySheet = (sheet: Omit<SalarySheet, 'id' | 'sheetCode'>): SalarySheet => {
+    const newSheet: SalarySheet = {
+      ...sheet,
+      id: `SAL-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      sheetCode: `SAL-${sheet.year}-${String(sheet.month).padStart(2, '0')}`,
+      preparedBy: currentUser.name
+    };
+    setSalarySheets(prev => [newSheet, ...prev]);
+    showToast(`Salary sheet ${newSheet.sheetCode} created!`, 'success', 'Salary Sheet');
+    logAuditAction('Created Salary Sheet', 'Accounts & Payroll', newSheet.sheetCode, undefined, `Gross: BDT ${newSheet.totalGrossSalary}`);
+    return newSheet;
+  };
+
+  const updateSalarySheetStatus = (id: string, status: SalarySheet['approvalStatus']) => {
+    setSalarySheets(prev => prev.map(s => {
+      if (s.id === id) {
+        const updated: SalarySheet = { ...s, approvalStatus: status, approvedBy: status === 'APPROVED' ? currentUser.name : s.approvedBy };
+        if (status === 'PAID') {
+          updated.paymentDate = new Date().toISOString().split('T')[0];
+          addJournalEntry({
+            date: updated.paymentDate,
+            reference: updated.sheetCode,
+            description: `Staff Salary Disbursement for ${updated.month} ${updated.year}`,
+            lines: [
+              { accountCode: '5010', accountName: 'Staff Salary Expense', debit: updated.totalNetPayable, credit: 0 },
+              { accountCode: '1020', accountName: 'Bank / Cash Account', debit: 0, credit: updated.totalNetPayable }
+            ],
+            createdBy: currentUser.name,
+            status: 'Approved'
+          });
+        }
+        return updated;
+      }
+      return s;
+    }));
+    showToast(`Salary sheet status updated to ${status}!`, 'info', 'Salary Updated');
+  };
+
+  const addDirectorHonorarium = (hon: Omit<DirectorHonorarium, 'id' | 'honorariumCode'>): DirectorHonorarium => {
+    const newHon: DirectorHonorarium = {
+      ...hon,
+      id: `DH-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      honorariumCode: `DH-${hon.year}-${String(hon.month).padStart(2, '0')}-${Math.floor(10 + Math.random() * 90)}`
+    };
+    setDirectorHonorariums(prev => [newHon, ...prev]);
+    showToast(`Director Honorarium recorded for ${newHon.directorName}`, 'success', 'Honorarium Added');
+    return newHon;
+  };
+
+  const updateDirectorHonorariumStatus = (id: string, status: DirectorHonorarium['approvalStatus']) => {
+    setDirectorHonorariums(prev => prev.map(h => {
+      if (h.id === id) {
+        const updated: DirectorHonorarium = { ...h, approvalStatus: status, approvedBy: status === 'APPROVED' ? currentUser.name : h.approvedBy };
+        if (status === 'PAID') {
+          updated.paymentDate = new Date().toISOString().split('T')[0];
+          addJournalEntry({
+            date: updated.paymentDate,
+            reference: updated.honorariumCode,
+            description: `Directors' Honorarium: ${updated.directorName} (${updated.month} ${updated.year})`,
+            lines: [
+              { accountCode: '5020', accountName: 'Directors Honorarium & Board Expenses', debit: updated.netAmount, credit: 0 },
+              { accountCode: '1020', accountName: 'Bank Account', debit: 0, credit: updated.netAmount }
+            ],
+            createdBy: currentUser.name,
+            status: 'Approved'
+          });
+        }
+        return updated;
+      }
+      return h;
+    }));
+    showToast(`Director Honorarium updated to ${status}!`, 'info', 'Honorarium Updated');
+  };
+
+  // -------------------------------------------------------------
+  // 2. BANK MANAGEMENT METHODS (Sections 141-145)
+  // -------------------------------------------------------------
+  const addBankAccount = (acc: Omit<BankAccount, 'id' | 'accountCode' | 'currentBalance'> & Partial<BankAccount>): BankAccount => {
+    const newAcc: BankAccount = {
+      ...acc,
+      id: `BA-${Date.now().toString().slice(-6)}`,
+      accountCode: `BA-${(acc.bankName || 'BNK').split(' ')[0].toUpperCase()}-${Math.floor(10 + Math.random() * 90)}`,
+      bankName: acc.bankName || 'New Bank',
+      branchName: acc.branchName || 'Main Branch',
+      accountName: acc.accountName || 'Tayeeba Housing Ltd.',
+      accountNumber: acc.accountNumber || '0000000000',
+      currency: acc.currency || 'BDT',
+      accountType: acc.accountType || 'Current',
+      openingBalance: acc.openingBalance || 0,
+      currentBalance: acc.openingBalance || 0,
+      isActive: true
+    };
+    setBankAccounts(prev => [newAcc, ...prev]);
+    showToast(`Bank account '${newAcc.bankName} - ${newAcc.branchName}' added!`, 'success', 'Bank Account Created');
+    return newAcc;
+  };
+
+  const updateBankAccount = (acc: BankAccount) => {
+    setBankAccounts(prev => prev.map(a => a.id === acc.id ? acc : a));
+    showToast(`Bank account '${acc.bankName}' updated!`, 'success', 'Bank Account Updated');
+  };
+
+  const addBankTransaction = (tx: Omit<BankTransaction, 'id' | 'transactionId' | 'balanceAfter' | 'isReconciled'> & Partial<BankTransaction>): BankTransaction => {
+    const targetAcc = bankAccounts.find(a => a.id === tx.bankAccountId);
+    const deposit = tx.depositAmount || 0;
+    const withdrawal = tx.withdrawalAmount || 0;
+    const currentBal = targetAcc ? targetAcc.currentBalance : 0;
+    const newBal = currentBal + deposit - withdrawal;
+
+    const newTx: BankTransaction = {
+      ...tx,
+      id: `BT-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      transactionId: `TXN-BNK-${Date.now().toString().slice(-6)}`,
+      bankAccountId: tx.bankAccountId,
+      bankAccountName: targetAcc ? `${targetAcc.bankName} (${targetAcc.accountNumber.slice(-4)})` : 'Bank Account',
+      transactionType: tx.transactionType || (deposit > 0 ? 'DEPOSIT' : 'WITHDRAWAL'),
+      particulars: tx.particulars || 'Bank Transaction',
+      paymentMethod: tx.paymentMethod || 'Bank Transfer',
+      depositAmount: deposit,
+      withdrawalAmount: withdrawal,
+      balanceAfter: newBal,
+      isReconciled: false,
+      date: tx.date || new Date().toISOString().split('T')[0]
+    };
+
+    setBankTransactions(prev => [newTx, ...prev]);
+
+    if (targetAcc) {
+      setBankAccounts(prev => prev.map(a => a.id === targetAcc.id ? { ...a, currentBalance: newBal } : a));
+    }
+
+    const isDeposit = deposit > 0;
+    addJournalEntry({
+      date: newTx.date,
+      reference: newTx.transactionId,
+      description: `Bank ${newTx.transactionType}: ${newTx.particulars}`,
+      lines: isDeposit ? [
+        { accountCode: '1020', accountName: `Bank - ${targetAcc?.bankName || 'General'}`, debit: deposit, credit: 0 },
+        { accountCode: '4010', accountName: 'Direct Deposits / Income', debit: 0, credit: deposit }
+      ] : [
+        { accountCode: '5010', accountName: 'Payments & Withdrawals', debit: withdrawal, credit: 0 },
+        { accountCode: '1020', accountName: `Bank - ${targetAcc?.bankName || 'General'}`, debit: 0, credit: withdrawal }
+      ],
+      createdBy: currentUser.name,
+      status: 'Approved'
+    });
+
+    showToast(`Bank transaction ${newTx.transactionId} posted!`, 'success', 'Bank Updated');
+    return newTx;
+  };
+
+  const reconcileBankTransaction = (txId: string, isReconciled: boolean) => {
+    setBankTransactions(prev => prev.map(t => t.id === txId ? { 
+      ...t, 
+      isReconciled, 
+      reconciledAt: isReconciled ? new Date().toISOString() : undefined,
+      reconciledBy: isReconciled ? currentUser.name : undefined
+    } : t));
+    showToast(`Transaction marked as ${isReconciled ? 'Reconciled' : 'Unreconciled'}`, 'info', 'Reconciliation');
+  };
+
+  const createBankReconciliation = (rec: Omit<BankReconciliation, 'id' | 'reconciliationNo'>): BankReconciliation => {
+    const newRec: BankReconciliation = {
+      ...rec,
+      id: `BR-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      reconciliationNo: `BR-${new Date().toISOString().slice(0,7)}-${Math.floor(100 + Math.random() * 900)}`,
+      performedBy: currentUser.name
+    };
+    setBankReconciliations(prev => [newRec, ...prev]);
+    showToast(`Bank Reconciliation ${newRec.reconciliationNo} saved!`, 'success', 'Reconciled');
+    return newRec;
+  };
+
+  // -------------------------------------------------------------
+  // 3. EC & BOARD MEETINGS METHODS (Sections 146-152)
+  // -------------------------------------------------------------
+  const createMeeting = (meetingData: Omit<Meeting, 'id' | 'meetingNo'>): Meeting => {
+    const isBoard = meetingData.meetingType === 'BOARD_MEETING';
+    const newMeeting: Meeting = {
+      ...meetingData,
+      id: `MTG-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      meetingNo: isBoard ? `BM-${new Date().getFullYear()}-${Math.floor(10 + Math.random() * 90)}` : `ECM-${new Date().getFullYear()}-${Math.floor(10 + Math.random() * 90)}`,
+      minutesStatus: meetingData.minutesStatus || 'DRAFT'
+    };
+    setMeetings(prev => [newMeeting, ...prev]);
+    showToast(`Meeting ${newMeeting.meetingNo} scheduled!`, 'success', 'Meeting Created');
+    logAuditAction('Created Meeting', 'Meetings', newMeeting.meetingNo, undefined, newMeeting.title);
+    return newMeeting;
+  };
+
+  const updateMeeting = (meeting: Meeting) => {
+    setMeetings(prev => prev.map(m => m.id === meeting.id ? meeting : m));
+    showToast(`Meeting ${meeting.meetingNo} updated!`, 'success', 'Meeting Updated');
+  };
+
+  const publishMeetingMinutes = (meetingId: string, minutesText: string, resolutionsText: string) => {
+    setMeetings(prev => prev.map(m => m.id === meetingId ? {
+      ...m,
+      minutesText,
+      resolutionsText,
+      minutesStatus: 'PUBLISHED',
+      status: 'APPROVED',
+      approvedBy: currentUser.name,
+      approvedAt: new Date().toISOString()
+    } : m));
+    showToast('Meeting minutes and resolutions published & finalized permanently.', 'success', 'Minutes Finalized');
+    logAuditAction('Published Minutes', 'Meetings', meetingId, undefined, 'Formalized minutes');
+  };
+
+  const addMeetingActionItem = (item: Omit<MeetingActionItem, 'id' | 'actionCode'>): MeetingActionItem => {
+    const newItem: MeetingActionItem = {
+      ...item,
+      id: `ACT-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      actionCode: `ACT-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      status: item.status || 'PENDING'
+    };
+    setMeetingActionItems(prev => [newItem, ...prev]);
+    showToast(`Action Item ${newItem.actionCode} assigned to ${newItem.responsiblePerson}`, 'success', 'Action Item Created');
+    return newItem;
+  };
+
+  const updateActionItemStatus = (id: string, status: MeetingActionItem['status']) => {
+    setMeetingActionItems(prev => prev.map(item => item.id === id ? {
+      ...item,
+      status,
+      completionDate: status === 'COMPLETED' ? new Date().toISOString().split('T')[0] : item.completionDate
+    } : item));
+    showToast(`Action item marked as ${status}`, 'info', 'Status Updated');
+  };
+
+  // -------------------------------------------------------------
+  // 4. CAPITAL MANAGEMENT METHODS (Sections 153-160)
+  // -------------------------------------------------------------
+  const addCapitalAccount = (acc: Omit<CapitalAccount, 'id' | 'contributorCode' | 'receivedCapital' | 'dueCapital' | 'status'> & Partial<CapitalAccount>): CapitalAccount => {
+    const newAcc: CapitalAccount = {
+      ...acc,
+      id: `CAP-ACC-${Date.now().toString().slice(-6)}`,
+      contributorCode: `SH-${Math.floor(100 + Math.random() * 900)}`,
+      receivedCapital: 0,
+      dueCapital: acc.committedCapital,
+      status: 'ACTIVE'
+    };
+    setCapitalAccounts(prev => [newAcc, ...prev]);
+    showToast(`Capital Account created for ${newAcc.contributorName}!`, 'success', 'Shareholder Added');
+    logAuditAction('Created Capital Account', 'Capital', newAcc.contributorCode, undefined, `Committed: BDT ${newAcc.committedCapital}`);
+    return newAcc;
+  };
+
+  const addCapitalTransaction = (tx: Omit<CapitalTransaction, 'id' | 'transactionCode' | 'status' | 'approvedBy'> & Partial<CapitalTransaction>): CapitalTransaction => {
+    const newTx: CapitalTransaction = {
+      ...tx,
+      id: `CAP-TX-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      transactionCode: `CAP-TXN-${Date.now().toString().slice(-6)}`,
+      status: 'APPROVED',
+      approvedBy: currentUser.name
+    };
+
+    setCapitalTransactions(prev => [newTx, ...prev]);
+
+    setCapitalAccounts(prev => prev.map(acc => {
+      if (acc.id === tx.capitalAccountId) {
+        const isReceived = tx.transactionType === 'CAPITAL_RECEIVED';
+        const isRefund = tx.transactionType === 'CAPITAL_REFUND';
+        const delta = isReceived ? tx.amount : (isRefund ? -tx.amount : 0);
+        const updatedReceived = Math.max(0, acc.receivedCapital + delta);
+        const updatedDue = Math.max(0, acc.committedCapital - updatedReceived);
+        return {
+          ...acc,
+          receivedCapital: updatedReceived,
+          dueCapital: updatedDue,
+          status: updatedDue === 0 ? 'PAID' : 'DUE'
+        };
+      }
+      return acc;
+    }));
+
+    if (tx.transactionType === 'CAPITAL_RECEIVED') {
+      addJournalEntry({
+        date: tx.date,
+        reference: newTx.transactionCode,
+        description: `Capital Contribution from ${tx.contributorName} (${tx.paymentMethod})`,
+        lines: [
+          { accountCode: '1020', accountName: 'Bank / Cash Account', debit: tx.amount, credit: 0 },
+          { accountCode: '3010', accountName: 'Share Capital (Paid-Up Capital)', debit: 0, credit: tx.amount }
+        ],
+        createdBy: currentUser.name,
+        status: 'Approved'
+      });
+    } else if (tx.transactionType === 'CAPITAL_REFUND') {
+      addJournalEntry({
+        date: tx.date,
+        reference: newTx.transactionCode,
+        description: `Capital Refund to ${tx.contributorName}`,
+        lines: [
+          { accountCode: '3010', accountName: 'Share Capital (Paid-Up Capital)', debit: tx.amount, credit: 0 },
+          { accountCode: '1020', accountName: 'Bank / Cash Account', debit: 0, credit: tx.amount }
+        ],
+        createdBy: currentUser.name,
+        status: 'Approved'
+      });
+    }
+
+    showToast(`Capital transaction ${newTx.transactionCode} processed!`, 'success', 'Capital Updated');
+    logAuditAction('Capital Transaction', 'Capital', newTx.transactionCode, undefined, `${tx.transactionType} - BDT ${tx.amount}`);
+    return newTx;
+  };
+
   return (
     <ERPContext.Provider value={{
       currentTab,
@@ -1479,7 +1980,35 @@ export const ERPProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateProject,
       deleteProject,
       addPlot,
-      updatePlot
+      updatePlot,
+      cashBookTransactions,
+      addCashTransaction,
+      approveCashTransaction,
+      salarySheets,
+      createSalarySheet,
+      updateSalarySheetStatus,
+      directorHonorariums,
+      addDirectorHonorarium,
+      updateDirectorHonorariumStatus,
+      bankAccounts,
+      bankTransactions,
+      bankReconciliations,
+      addBankAccount,
+      updateBankAccount,
+      addBankTransaction,
+      reconcileBankTransaction,
+      createBankReconciliation,
+      meetings,
+      meetingActionItems,
+      createMeeting,
+      updateMeeting,
+      publishMeetingMinutes,
+      addMeetingActionItem,
+      updateActionItemStatus,
+      capitalAccounts,
+      capitalTransactions,
+      addCapitalAccount,
+      addCapitalTransaction
     }}>
       {children}
     </ERPContext.Provider>
