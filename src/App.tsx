@@ -35,6 +35,8 @@ import { RoleManager } from './components/security/RoleManager';
 import { OrganogramManager } from './components/security/OrganogramManager';
 import { LoginHistory } from './components/security/LoginHistory';
 
+import { Footer } from './components/common/Footer';
+
 const ERPContent: React.FC = () => {
   const { currentTab, isAuthenticated, mustChangePassword, hasPermission } = useERP();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -128,14 +130,15 @@ const ERPContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen housing-watermark-bg flex flex-col font-sans text-slate-100 relative">
+    <div className="min-h-screen erp-main-bg flex flex-col font-sans text-slate-800 relative">
       <Header onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
       <div className="flex flex-1 relative">
         <Sidebar mobileOpen={mobileSidebarOpen} onCloseMobile={() => setMobileSidebarOpen(false)} />
-        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto max-w-7xl mx-auto w-full min-w-0">
+        <main className="flex-1 p-3.5 sm:p-5 md:p-6 overflow-y-auto max-w-[1600px] mx-auto w-full min-w-0">
           {renderTabContent()}
         </main>
       </div>
+      <Footer />
       <SessionTimeoutWarning />
       <ConfirmDialogModal />
       <ToastContainer />

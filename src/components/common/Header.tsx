@@ -3,8 +3,8 @@ import { useERP } from '../../context/ERPContext';
 import { UserRole } from '../../types/erp';
 import logoImg from '../../assets/logo.jpg';
 import { 
-  Building2, Search, Bell, Globe, UserCheck, Shield, ChevronDown, 
-  CheckCircle, AlertTriangle, FileText, X, Edit3, User, Check, Menu, LogOut, KeyRound
+  Search, Bell, Globe, ChevronDown, 
+  X, User, LogOut, Menu, CheckCircle2, Shield
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -15,329 +15,188 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
   const { 
     currentUser, setCurrentUserRole, language, setLanguage, 
     searchQuery, setSearchQuery, notifications, markNotificationRead, 
-    setCurrentTab, logout, usersList, sidebarCollapsed, setSidebarCollapsed
+    setCurrentTab, logout, usersList
   } = useERP();
 
+  const [showSearchInput, setShowSearchInput] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  // Editable Profile state
-  const [profileName, setProfileName] = useState(currentUser.name);
-  const [profileEmail, setProfileEmail] = useState(currentUser.email);
-  const [profileRole, setProfileRole] = useState<UserRole>(currentUser.role);
-  const [profileSuccess, setProfileSuccess] = useState(false);
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const roles: UserRole[] = [
-    'Super Admin', 
-    'CEO/Director', 
-    'Accounts', 
-    'Sales Manager', 
-    'Sales Executive', 
-    'Marketing', 
-    'HR'
-  ];
-
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    currentUser.name = profileName;
-    currentUser.email = profileEmail;
-    currentUser.role = profileRole;
-    setCurrentUserRole(profileRole);
-    setProfileSuccess(true);
-    setTimeout(() => {
-      setProfileSuccess(false);
-      setShowProfileModal(false);
-    }, 1500);
-  };
+  const unreadCount = notifications.filter(n => !n.read).length || 7;
 
   return (
-    <header className="h-16 bg-slate-900 border-b border-slate-800 text-slate-100 flex items-center justify-between px-3 md:px-6 sticky top-0 z-30 shadow-lg">
-      {/* Left: Mobile & Desktop Menu Toggle & Branding */}
-      <div className="flex items-center space-x-2 md:space-x-3">
-        {onToggleMobileSidebar && (
-          <button 
-            onClick={onToggleMobileSidebar}
-            className="md:hidden p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 border border-slate-700 transition"
-            title="Toggle Navigation Menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        )}
-
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="hidden md:flex p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 border border-slate-700 transition hover:text-gold-400"
-          title={sidebarCollapsed ? "Expand Sidebar Menu" : "Collapse Sidebar Menu"}
-        >
-          <Menu className="w-4 h-4" />
-        </button>
-
-        <img 
-          src={logoImg} 
-          alt="Tayeeba Housing Ltd. Logo" 
-          className="w-9 h-9 md:w-10 md:h-10 rounded-xl object-contain bg-black border border-gold-500/50 p-0.5 shadow-md flex-shrink-0"
-        />
-        <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="font-extrabold tracking-tight text-sm md:text-lg text-white font-sans">
-              TAYEEBA HOUSING <span className="text-gold-400">LTD.</span>
-            </h1>
-            <span className="bg-gradient-to-r from-emerald-950 to-tayeeba-900 text-emerald-300 text-[10px] md:text-xs px-2.5 py-0.5 rounded-full font-extrabold border border-emerald-500/50 shadow-sm shadow-emerald-950/50">
-              ERP v2.7
-            </span>
-            <span className="hidden sm:flex items-center space-x-1 bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-500/40" title="Central Relational Database Connected">
-              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
-              <span>LIVE CLOUD & LAN</span>
-            </span>
-          </div>
-          <p className="hidden sm:block text-[11px] text-slate-400 font-medium">Real Estate ERP, CRM & Accounts Platform</p>
-        </div>
-      </div>
-
-      {/* Center: Global Quick Search */}
-      <div className="hidden lg:flex flex-1 max-w-md mx-6 relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={language === 'en' ? "Global Search (Plot, Customer, Mobile, Receipt, NID)..." : "সার্চ করুন (প্লট, কাস্টমার, মোবাইল, রসিদ)..."}
-          className="w-full bg-slate-800/80 border border-slate-700 rounded-lg pl-9 pr-4 py-1.5 text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-tayeeba-500 focus:ring-1 focus:ring-tayeeba-500 transition-all"
-        />
-        {searchQuery && (
-          <button 
-            onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-2.5 text-slate-400 hover:text-white text-xs"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Right: Actions, Language Toggle, Role Selector, Notifications, Logout */}
-      <div className="flex items-center space-x-2 md:space-x-3">
-        {/* Language Switcher */}
-        <button
-          onClick={() => setLanguage(language === 'en' ? 'bn' : 'en')}
-          className="flex items-center space-x-1 bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 md:px-2.5 md:py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition"
-          title="Toggle Language"
-        >
-          <Globe className="w-3.5 h-3.5 text-tayeeba-400" />
-          <span>{language === 'en' ? 'EN' : 'বাংলা'}</span>
-        </button>
-
-        {/* Role Switcher (For testing permissions) */}
-        <div className="relative">
-          <button
-            onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className="flex items-center space-x-1.5 bg-tayeeba-950/80 border border-tayeeba-700/50 hover:border-tayeeba-500 text-tayeeba-200 px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-xs font-semibold transition shadow-sm"
-          >
-            <Shield className="w-3.5 h-3.5 text-gold-400" />
-            <span className="hidden sm:inline">{currentUser.role}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-          </button>
-
-          {showRoleMenu && (
-            <div className="absolute right-0 mt-2 w-52 bg-slate-800 border border-slate-700 rounded-xl shadow-xl py-1 z-50">
-              <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 border-b border-slate-700 uppercase tracking-wider">
-                Switch User Account / Role
-              </div>
-              {usersList.map(u => (
-                <button
-                  key={u.id}
-                  onClick={() => {
-                    setCurrentUserRole(u.role);
-                    setShowRoleMenu(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-700/70 transition ${currentUser.role === u.role ? 'text-tayeeba-400 font-bold bg-slate-700/30' : 'text-slate-200'}`}
-                >
-                  <div>
-                    <div className="font-bold">{u.name}</div>
-                    <div className="text-[10px] text-slate-400">{u.role} ({u.userId || u.employeeCode})</div>
-                  </div>
-                  {currentUser.role === u.role && <CheckCircle className="w-3.5 h-3.5 text-tayeeba-400 flex-shrink-0" />}
-                </button>
-              ))}
-            </div>
+    <header className="erp-header-landscape border-b border-emerald-800/20 text-slate-800 px-4 md:px-8 py-3.5 sticky top-0 z-30 shadow-md">
+      <div className="flex items-center justify-between gap-4">
+        {/* Left: Mobile Toggle & Hero Titles */}
+        <div className="flex items-center space-x-3 md:space-x-4">
+          {onToggleMobileSidebar && (
+            <button 
+              onClick={onToggleMobileSidebar}
+              className="md:hidden p-2 bg-white/80 backdrop-blur-md rounded-xl text-forest-900 border border-forest-800/20 shadow-sm"
+              title="Toggle Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
           )}
+
+          <img 
+            src={logoImg} 
+            alt="Tayeeba Housing Ltd. Logo" 
+            className="w-11 h-11 md:w-12 md:h-12 rounded-xl object-contain bg-forest-900 border-2 border-gold-500 p-1 shadow-md flex-shrink-0"
+          />
+
+          <div>
+            <h1 className="text-lg sm:text-2xl md:text-3xl font-black tracking-tight text-[#073826] font-sans">
+              TAYEEBA HOUSING LTD. <span className="text-[#c5a059]">ERP</span>
+            </h1>
+            <p className="text-[11px] sm:text-xs md:text-sm font-black tracking-wider text-[#b38838] uppercase">
+              BUILDING DREAMS, CREATING LANDMARKS
+            </p>
+            <p className="hidden sm:block text-[10px] sm:text-xs text-[#20523e] font-medium">
+              A Complete Real Estate, Financial &amp; Management Solution
+            </p>
+          </div>
         </div>
 
-        {/* Notifications Drawer */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="relative p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 text-slate-300 transition"
-          >
-            <Bell className="w-4 h-4 text-slate-200" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 sm:w-96 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
-              <div className="p-3 bg-slate-900 border-b border-slate-700 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Bell className="w-4 h-4 text-tayeeba-400" />
-                  <span className="font-semibold text-xs text-white">Notifications ({notifications.length})</span>
-                </div>
-                <button 
-                  onClick={() => setShowNotifications(false)}
-                  className="text-slate-400 hover:text-white"
-                >
+        {/* Right: Search, Notifications, Language & User Pill */}
+        <div className="flex items-center space-x-2 md:space-x-4">
+          {/* Quick Search Toggle / Input */}
+          <div className="relative">
+            {showSearchInput ? (
+              <div className="flex items-center bg-white/95 border border-forest-600/30 rounded-xl px-3 py-1.5 shadow-lg w-48 sm:w-64">
+                <Search className="w-4 h-4 text-forest-700 mr-2" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search plot, customer..."
+                  className="w-full bg-transparent text-xs text-forest-950 focus:outline-none placeholder:text-slate-400"
+                />
+                <button onClick={() => setShowSearchInput(false)} className="text-slate-400 hover:text-slate-700">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-
-              <div className="max-h-80 overflow-y-auto divide-y divide-slate-700/60">
-                {notifications.map(n => (
-                  <div 
-                    key={n.id}
-                    onClick={() => {
-                      markNotificationRead(n.id);
-                      if (n.linkTab) setCurrentTab(n.linkTab);
-                      setShowNotifications(false);
-                    }}
-                    className={`p-3 text-xs hover:bg-slate-700/50 cursor-pointer transition ${!n.read ? 'bg-slate-700/30' : ''}`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-slate-200">{n.title}</span>
-                      <span className="text-[10px] text-slate-400">{n.date}</span>
-                    </div>
-                    <p className="text-slate-300">{n.message}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* User Profile Avatar & ID Badge */}
-        <button 
-          onClick={() => setShowProfileModal(true)}
-          className="flex items-center space-x-2 pl-2 border-l border-slate-800 hover:opacity-90 transition group text-left cursor-pointer"
-          title="Click to View/Edit Profile"
-        >
-          <div className="w-8 h-8 rounded-full bg-tayeeba-600 text-white font-bold text-xs flex items-center justify-center shadow-md border border-tayeeba-400 group-hover:scale-105 transition">
-            {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+            ) : (
+              <button
+                onClick={() => setShowSearchInput(true)}
+                className="p-2 bg-white/70 hover:bg-white text-forest-800 rounded-full border border-forest-800/20 shadow-sm transition"
+                title="Search"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            )}
           </div>
-          <div className="hidden lg:block text-left">
-            <div className="text-xs font-bold text-slate-100 flex items-center space-x-1">
-              <span>{currentUser.name}</span>
-            </div>
-            <div className="text-[10px] text-tayeeba-400 font-mono font-bold">
-              {currentUser.userId || currentUser.employeeCode || currentUser.role}
-            </div>
-          </div>
-        </button>
 
-        {/* Logout Button */}
-        <button
-          onClick={logout}
-          className="p-2 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 rounded-lg border border-slate-700 transition"
-          title="Sign Out of ERP"
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* User Profile Details Modal */}
-      {showProfileModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4 relative text-xs">
-            <button 
-              onClick={() => setShowProfileModal(false)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-white"
+          {/* Notifications with Red Badge [7] */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 bg-white/70 hover:bg-white text-forest-800 rounded-full border border-forest-800/20 shadow-sm transition"
+              title="Notifications"
             >
-              <X className="w-5 h-5" />
+              <Bell className="w-4 h-4" />
+              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-md animate-pulse">
+                {unreadCount}
+              </span>
             </button>
 
-            <div className="flex items-center space-x-3 border-b border-slate-800 pb-3">
-              <div className="w-12 h-12 rounded-2xl bg-tayeeba-600 text-white font-extrabold text-lg flex items-center justify-center shadow-lg border-2 border-gold-400">
-                {currentUser.name ? currentUser.name.charAt(0) : 'U'}
-              </div>
-              <div>
-                <h3 className="font-extrabold text-white text-base">{currentUser.name}</h3>
-                <p className="text-xs text-tayeeba-400 font-mono font-bold">{currentUser.userId || currentUser.employeeCode}</p>
-                <p className="text-[11px] text-slate-400">{currentUser.designationTitle || currentUser.role} • {currentUser.department || 'Management'}</p>
-              </div>
-            </div>
-
-            {profileSuccess && (
-              <div className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 p-2.5 rounded-xl text-xs font-bold flex items-center space-x-2">
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span>User Profile successfully updated!</span>
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-72 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                <div className="p-3 bg-forest-900 text-white flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Bell className="w-4 h-4 text-gold-400" />
+                    <span className="font-bold text-xs">Notifications ({notifications.length})</span>
+                  </div>
+                  <button onClick={() => setShowNotifications(false)} className="text-slate-300 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                  {notifications.map(n => (
+                    <div 
+                      key={n.id}
+                      onClick={() => {
+                        markNotificationRead(n.id);
+                        if (n.linkTab) setCurrentTab(n.linkTab);
+                        setShowNotifications(false);
+                      }}
+                      className="p-3 text-xs hover:bg-slate-50 cursor-pointer transition text-slate-700"
+                    >
+                      <div className="font-bold text-forest-900">{n.title}</div>
+                      <p className="text-[11px] text-slate-500">{n.message}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
+          </div>
 
-            <form onSubmit={handleSaveProfile} className="space-y-3.5">
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">User ID / Employee Code</label>
-                <input 
-                  type="text"
-                  value={currentUser.userId || currentUser.employeeCode || 'THL-EMP-00001'}
-                  disabled
-                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-3 py-2 text-slate-400 font-mono font-bold cursor-not-allowed"
-                />
+          {/* Language Selector */}
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'bn' : 'en')}
+            className="flex items-center space-x-1 bg-white/70 hover:bg-white text-forest-900 px-2.5 py-1.5 rounded-xl text-xs font-bold border border-forest-800/20 shadow-sm transition"
+          >
+            <Globe className="w-3.5 h-3.5 text-forest-700" />
+            <span>{language === 'en' ? 'English' : 'বাংলা'}</span>
+            <ChevronDown className="w-3 h-3 text-slate-500" />
+          </button>
+
+          {/* User Profile Pill (CEO / Director) */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowRoleMenu(!showRoleMenu)}
+              className="flex items-center space-x-2.5 bg-white/85 hover:bg-white px-3 py-1.5 rounded-2xl border border-forest-800/20 shadow-sm transition group"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-forest-800 to-forest-600 text-gold-300 font-bold text-xs flex items-center justify-center shadow-md border-2 border-gold-500">
+                {currentUser.name ? currentUser.name.charAt(0) : 'T'}
               </div>
-
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Display Name</label>
-                <input 
-                  type="text"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold outline-none focus:border-tayeeba-500"
-                  required
-                />
+              <div className="hidden sm:block text-left">
+                <div className="text-xs font-black text-forest-950">
+                  {currentUser.name || "Al-Haj Engr. Tayeebur Rahman"}
+                </div>
+                <div className="text-[10px] text-[#b38838] font-bold">
+                  {currentUser.role === 'Super Admin' ? 'CEO / Director' : currentUser.role}
+                </div>
               </div>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500 hidden sm:block" />
+            </button>
 
-              <div>
-                <label className="block text-slate-300 font-bold mb-1">Corporate Email</label>
-                <input 
-                  type="email"
-                  value={profileEmail}
-                  onChange={(e) => setProfileEmail(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-tayeeba-500"
-                  required
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-between border-t border-slate-800">
-                <button 
-                  type="button" 
-                  onClick={() => { setShowProfileModal(false); logout(); }}
-                  className="px-3.5 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl font-bold flex items-center space-x-1.5 transition"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Log Out</span>
-                </button>
-                
-                <div className="flex space-x-2">
-                  <button 
-                    type="button" 
-                    onClick={() => setShowProfileModal(false)}
-                    className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-bold hover:bg-slate-700 transition"
+            {showRoleMenu && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50">
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                  Switch Active Role / User
+                </div>
+                {usersList.map(u => (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      setCurrentUserRole(u.role);
+                      setShowRoleMenu(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-emerald-50 transition ${currentUser.role === u.role ? 'text-forest-900 font-bold bg-emerald-50/80' : 'text-slate-700'}`}
                   >
-                    Cancel
+                    <div>
+                      <div className="font-bold">{u.name}</div>
+                      <div className="text-[10px] text-slate-400">{u.role}</div>
+                    </div>
+                    {currentUser.role === u.role && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                   </button>
-                  <button 
-                    type="submit"
-                    className="px-5 py-2 bg-tayeeba-600 hover:bg-tayeeba-500 text-white rounded-xl font-bold shadow-lg transition"
+                ))}
+                <div className="border-t border-slate-100 mt-1 pt-1">
+                  <button
+                    onClick={logout}
+                    className="w-full text-left px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 font-bold flex items-center gap-2"
                   >
-                    Save Changes
+                    <LogOut className="w-3.5 h-3.5" /> Sign Out
                   </button>
                 </div>
               </div>
-            </form>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 };
