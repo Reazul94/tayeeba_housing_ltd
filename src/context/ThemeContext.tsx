@@ -41,10 +41,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Calculate effective active theme
   let effectivePresetId = themeId;
   if (themeId === 'system') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const prefersDark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
     effectivePresetId = prefersDark ? 'dark-emerald' : 'tayeeba-emerald';
-  } else if (themeMode === 'dark' && !themeId.startsWith('dark-')) {
-    effectivePresetId = 'dark-emerald';
   }
 
   const activeTheme = THEME_PRESETS.find(t => t.id === effectivePresetId) || THEME_PRESETS[0];
@@ -57,6 +55,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Apply CSS variables & dark class to document root
   useEffect(() => {
     const root = document.documentElement;
+
+    // Apply data-theme attribute
+    root.setAttribute('data-theme', activeTheme.id);
 
     // Apply CSS Variables
     Object.entries(activeTheme.cssVars).forEach(([key, val]) => {
@@ -89,11 +90,37 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setThemeId = (id: string) => {
     setThemeIdState(id);
     localStorage.setItem(THEME_STORAGE_KEY, id);
+    
+    // Auto-sync themeMode with selected preset category
+    const selected = THEME_PRESETS.find(t => t.id === id);
+    if (selected) {
+      if (selected.category === 'dark') {
+        setThemeModeState('dark');
+        localStorage.setItem(MODE_STORAGE_KEY, 'dark');
+      } else if (selected.id === 'system') {
+        setThemeModeState('system');
+        localStorage.setItem(MODE_STORAGE_KEY, 'system');
+      } else {
+        setThemeModeState('light');
+        localStorage.setItem(MODE_STORAGE_KEY, 'light');
+      }
+    }
   };
 
   const setThemeMode = (mode: ThemeMode) => {
     setThemeModeState(mode);
     localStorage.setItem(MODE_STORAGE_KEY, mode);
+
+    if (mode === 'dark' && activeTheme.category !== 'dark') {
+      setThemeIdState('dark-emerald');
+      localStorage.setItem(THEME_STORAGE_KEY, 'dark-emerald');
+    } else if (mode === 'light' && activeTheme.category === 'dark') {
+      setThemeIdState('tayeeba-emerald');
+      localStorage.setItem(THEME_STORAGE_KEY, 'tayeeba-emerald');
+    } else if (mode === 'system') {
+      setThemeIdState('system');
+      localStorage.setItem(THEME_STORAGE_KEY, 'system');
+    }
   };
 
   const setDensity = (newDensity: DisplayDensity) => {

@@ -71,21 +71,126 @@
   position: relative;
 }
 
-/* Sidebar Styling */
-.theme-luxury-sidebar {
-  background: #06231a;
-  border-right: 1px solid rgba(197, 160, 89, 0.2);
+/* ============================================================
+   DYNAMIC THEME & APPEARANCE RULES (SECTIONS 93-110)
+   ============================================================ */
+
+/* Surfaces and Cards */
+.erp-card,
+.bg-white,
+.bg-white\/95,
+.bg-white\/90,
+.bg-white\/80,
+.bg-white\/70 {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text);
+  border-color: var(--color-border);
 }
 
-/* Luxury Gold & Forest Badges */
+.bg-slate-50,
+.bg-slate-100 {
+  background-color: var(--color-surface-secondary) !important;
+  border-color: var(--color-border);
+}
+
+/* Sidebar Styling */
+aside,
+.theme-luxury-sidebar {
+  background-color: var(--sidebar-bg) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Header Styling in Dark Mode */
+.dark .erp-header-landscape {
+  background: var(--header-bg) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+.dark .erp-header-landscape * {
+  border-color: var(--color-border);
+}
+
+/* Badges & Accents */
 .badge-gold-active {
-  background: #c5a059;
-  color: #ffffff;
+  background-color: var(--color-secondary) !important;
+  color: #ffffff !important;
   box-shadow: 0 4px 12px rgba(197, 160, 89, 0.35);
 }
 
 .badge-gold-active:hover {
-  background: #b38838;
+  filter: brightness(1.1);
+}
+
+/* Dark Mode Typography and Borders */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-\[\#073826\],
+.dark .text-forest-950,
+.dark .text-forest-900 {
+  color: var(--color-text) !important;
+}
+
+.dark .text-slate-700,
+.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-slate-500,
+.dark .text-slate-400 {
+  color: var(--color-text-muted) !important;
+}
+
+.dark .border-slate-200,
+.dark .border-slate-200\/90,
+.dark .border-slate-200\/80,
+.dark .border-slate-100,
+.dark .border-slate-300,
+.dark .border-forest-800\/20,
+.dark .border-emerald-800\/20 {
+  border-color: var(--color-border) !important;
+}
+
+.dark .divide-slate-100 > *,
+.dark .divide-slate-200 > * {
+  border-color: var(--color-border) !important;
+}
+
+/* Dark Mode Table Styling */
+.dark table thead {
+  background-color: var(--color-primary-dark) !important;
+  color: var(--color-secondary) !important;
+}
+
+.dark table tbody tr {
+  border-color: var(--color-border) !important;
+}
+
+.dark table tbody tr:hover {
+  background-color: var(--color-surface-secondary) !important;
+}
+
+/* Dark Mode Form Inputs */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: var(--color-surface-secondary) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: var(--color-text-muted) !important;
 }
 
 /* Custom scrollbar */
@@ -95,14 +200,14 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #06231a;
+  background: var(--sidebar-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1b7a54;
+  background: var(--color-primary);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #c5a059;
+  background: var(--color-secondary);
 }

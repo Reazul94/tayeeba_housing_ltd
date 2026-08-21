@@ -48,13 +48,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
           />
 
           <div>
-            <h1 className="text-lg sm:text-2xl md:text-3xl font-black tracking-tight text-[#073826] font-sans">
-              TAYEEBA HOUSING LTD. <span className="text-[#c5a059]">ERP</span>
+            <h1 className="text-lg sm:text-2xl md:text-3xl font-black tracking-tight text-[#073826] dark:text-white font-sans">
+              TAYEEBA HOUSING LTD. <span className="text-[#c5a059] dark:text-[#fbbf24]">ERP</span>
             </h1>
-            <p className="text-[11px] sm:text-xs md:text-sm font-black tracking-wider text-[#b38838] uppercase">
+            <p className="text-[11px] sm:text-xs md:text-sm font-black tracking-wider text-[#b38838] dark:text-[#fbbf24] uppercase">
               BUILDING DREAMS, CREATING LANDMARKS
             </p>
-            <p className="hidden sm:block text-[10px] sm:text-xs text-[#20523e] font-medium">
+            <p className="hidden sm:block text-[10px] sm:text-xs text-[#20523e] dark:text-slate-300 font-medium">
               A Complete Real Estate, Financial &amp; Management Solution
             </p>
           </div>
